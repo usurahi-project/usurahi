@@ -17,24 +17,33 @@
 2. えるに依頼を持ち込んで、会議を進めてもらう
 3. 必要なら図書室で記事や知識を取り込む
 
+## 用語の対応
+
+| 世界観 | 実装 |
+|--------|------|
+| `noticeboard` | `noticeboard` |
+| `clubroom` | `clubroom` |
+| `staffroom` | `shokuinshitsu` |
+| `library` | `library` |
+
 ## 最初に打つコマンド
 
 ### 部活を起動する
 
 ```bash
-./kaigi.sh
+./meeting.sh
 ```
 
 起きること:
 
 - えるとハルヒが起動する
-- `keijiban` セッションがえる用に立ち上がる
-- `bushitsu` セッションが部室として立ち上がる
+- `noticeboard` セッションが える用に立ち上がる
+- `clubroom` セッションが部室として立ち上がる
 
 ### まっさらな状態から始める
 
 ```bash
-./kaigi.sh -c
+./meeting.sh -c
 ```
 
 起きること:
@@ -46,19 +55,19 @@
 ### 最初から全員呼ぶ
 
 ```bash
-./kaigi.sh -a
+./meeting.sh -a
 ```
 
 ### 途中で部員を呼ぶ
 
 ```bash
-./kaigi.sh -w
+./meeting.sh -w
 ```
 
 ### 下校する
 
 ```bash
-./kaigi.sh -k
+./meeting.sh -k
 ```
 
 ## どこに入るか
@@ -78,15 +87,16 @@
 ### えるに話しかける
 
 ```bash
-tmux attach -t keijiban
+tmux attach -t noticeboard
 ```
 
 ここでは、えるの受け答えを見たり、背景を補足したりする。
+`noticeboard` は背景や判断を補足する窓口であり、正式依頼そのものは `request.sh` と `room_requests.yaml` が主線である。
 
 ### 部室を覗く
 
 ```bash
-tmux attach -t bushitsu
+tmux attach -t clubroom
 ```
 
 ここでは、部員たちのやり取りと黒板の現在値を見る。
@@ -94,7 +104,7 @@ tmux attach -t bushitsu
 ## 途中で口を挟む
 
 ```bash
-./scripts/renraku.sh <送信先> "<メッセージ>"
+./scripts/notify.sh <送信先> "<メッセージ>"
 ```
 
 送信先:
@@ -110,26 +120,27 @@ tmux attach -t bushitsu
 ### URLキューを処理する
 
 ```bash
-./toshoshitsu.sh
+./library.sh
 ```
 
 ### 未処理URLを確認する
 
 ```bash
-./toshoshitsu.sh -l
+./library.sh -l
 ```
 
 ## 基本導線
 
-1. `./kaigi.sh -c`
-2. `tmux attach -t keijiban`
-3. えるに依頼を自然文で話す
-4. 必要なら `tmux attach -t bushitsu` で部室を見る
-5. 途中で口を挟みたければ `./scripts/renraku.sh ...`
-6. 結論を受け取る
-7. 必要なら `./kaigi.sh -k`
+1. `./meeting.sh -c`
+2. 必要なら `./request.sh "依頼本文"` で正式依頼を積む
+3. `tmux attach -t noticeboard`
+4. えるに背景や判断を補足する
+5. 必要なら `tmux attach -t clubroom` で部室を見る
+6. 途中で口を挟みたければ `./scripts/notify.sh ...`
+7. 結論を受け取る
+8. 必要なら `./meeting.sh -k`
 
 ## 補足
 
 正式依頼の入口は `request.sh` である。
-えるへの自然文は世界観のために残しつつ、入口の状態遷移は薄いCLIで安定させる。
+えるへの自然文は、背景や判断を返すための会話窓口として残す。

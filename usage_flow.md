@@ -15,14 +15,14 @@
 ### 部活を起動する
 
 ```bash
-./kaigi.sh
+./meeting.sh
 ```
 
 起きること:
 
 - えるとハルヒが起動する
-- `keijiban` セッションがえる用に立ち上がる
-- `bushitsu` セッションが部室として立ち上がる
+- `noticeboard` セッションがえる用に立ち上がる
+- `clubroom` セッションが部室として立ち上がる
 - 黒板とキューの現在状態を見ながら会話できる
 
 得られる体験:
@@ -34,7 +34,7 @@
 ### まっさらな状態から始める
 
 ```bash
-./kaigi.sh -c
+./meeting.sh -c
 ```
 
 起きること:
@@ -51,7 +51,7 @@
 ### 最初から全員呼ぶ
 
 ```bash
-./kaigi.sh -a
+./meeting.sh -a
 ```
 
 起きること:
@@ -66,7 +66,7 @@
 ### 途中で部員を呼ぶ
 
 ```bash
-./kaigi.sh -w
+./meeting.sh -w
 ```
 
 起きること:
@@ -80,7 +80,7 @@
 ### 部室だけ開ける
 
 ```bash
-./kaigi.sh -s
+./meeting.sh -s
 ```
 
 起きること:
@@ -95,12 +95,12 @@
 ### 下校する
 
 ```bash
-./kaigi.sh -k
+./meeting.sh -k
 ```
 
 起きること:
 
-- `keijiban` と `bushitsu` セッションを閉じる
+- `noticeboard` と `clubroom` セッションを閉じる
 
 得られる体験:
 
@@ -111,11 +111,12 @@
 ### えるに話しかける
 
 ```bash
-tmux attach -t keijiban
+tmux attach -t noticeboard
 ```
 
-これは正式依頼の入口である。
-ユーザーはここで、えるに自然文で依頼を持ち込む。
+ここは、えると会話しながら背景や判断を返す窓口である。
+正式依頼の主線は `request.sh` から `room_requests.yaml` に入る。
+`noticeboard` 的な空気はここに残しつつ、受付の状態遷移は薄い CLI で安定させる。
 
 例:
 
@@ -139,13 +140,13 @@ sample-project の TODO CLI を、世界観はそのままで使いやすくし�
 ### 部室を覗く
 
 ```bash
-tmux attach -t bushitsu
+tmux attach -t clubroom
 ```
 
 起きること:
 
 - ハルヒ、折木、キョン、長門のやり取りを見られる
-- 実際には `kokuban.md` の現在値と `gijiroku.yaml` の内部状態をもとに部活が進む
+- 実際には `blackboard.md` の現在値と `gijiroku.yaml` の内部状態をもとに部活が進む
 
 得られる体験:
 
@@ -156,15 +157,16 @@ tmux attach -t bushitsu
 
 依頼後の流れはこうなる。
 
-1. ユーザーが `keijiban` セッションでえるに話しかける
-2. えるが背景や意図を確認する
-3. えるが正式依頼として受け、会議を立ち上げる
-4. ハルヒが方向を押す
-5. 必要なら折木・キョン・長門が入って整理、制動、見極めをする
-6. 黒板が更新される
-7. えるが部としての結論を返す
-8. 提出が完了すると、活動記録が自動で保存される
-9. 会議は閉じ、黒板は初期状態に戻る
+1. ユーザーが `request.sh` で正式依頼を入れる
+2. 必要なら `noticeboard` セッションで えるに背景や判断を補足する
+3. えるが背景や意図を確認する
+4. えるが会議を立ち上げる
+5. ハルヒが方向を押す
+6. 必要なら折木・キョン・長門が入って整理、制動、見極めをする
+7. 黒板が更新される
+8. えるが部としての結論を返す
+9. 提出が完了すると、活動記録が自動で保存される
+10. 会議は閉じ、黒板は初期状態に戻る
 
 得られる体験:
 
@@ -177,7 +179,7 @@ tmux attach -t bushitsu
 ### 任意の部員に連絡する
 
 ```bash
-./scripts/renraku.sh <送信先> "<メッセージ>"
+./scripts/notify.sh <送信先> "<メッセージ>"
 ```
 
 送信先:
@@ -191,9 +193,9 @@ tmux attach -t bushitsu
 例:
 
 ```bash
-./scripts/renraku.sh eru "その方針で進めてください。"
-./scripts/renraku.sh haruhi "もっと面白さを優先したいです。"
-./scripts/renraku.sh kyon "その実装だと運用で困らない？"
+./scripts/notify.sh eru "その方針で進めてください。"
+./scripts/notify.sh haruhi "もっと面白さを優先したいです。"
+./scripts/notify.sh kyon "その実装だと運用で困らない？"
 ```
 
 起きること:
@@ -211,7 +213,7 @@ tmux attach -t bushitsu
 ### URLキューを処理する
 
 ```bash
-./toshoshitsu.sh
+./library.sh
 ```
 
 起きること:
@@ -228,7 +230,7 @@ tmux attach -t bushitsu
 ### 未処理URLを確認する
 
 ```bash
-./toshoshitsu.sh -l
+./library.sh -l
 ```
 
 起きること:
@@ -251,13 +253,13 @@ Slack Bridge が動いていれば、次の体験もある。
 
 一番自然な使い方はこれ。
 
-1. `./kaigi.sh -c`
-2. `tmux attach -t keijiban`
+1. `./meeting.sh -c`
+2. `tmux attach -t noticeboard`
 3. えるに依頼を自然文で話す
-4. 必要なら `tmux attach -t bushitsu` で部室を見る
-5. 途中で口を挟きたければ `./scripts/renraku.sh ...`
+4. 必要なら `tmux attach -t clubroom` で部室を見る
+5. 途中で口を挟みたければ `./scripts/notify.sh ...`
 6. 結論を受け取る
-7. 必要なら `./kaigi.sh -k`
+7. 必要なら `./meeting.sh -k`
 
 ## 8. 今の実装で強い点
 

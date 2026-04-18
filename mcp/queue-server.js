@@ -16,7 +16,7 @@ const BASEDIR = path.join(process.env.HOME, "usurahi");
 const QUEUE = path.join(BASEDIR, "queue");
 const OBSIDIAN_VAULT = path.join(process.env.HOME, "Documents", "Obsidian Vault");
 const OBSIDIAN_USURAHI = path.join(OBSIDIAN_VAULT, "薄氷");
-const OBSIDIAN_FOLDERS = { backnumber: "図書館/薄氷バックナンバー", nisshi: "部室/活動記録", library: "図書館/開架" };
+const OBSIDIAN_FOLDERS = { archive: "図書館/薄氷バックナンバー", "activity-log": "部室/活動記録", library: "図書館/開架" };
 
 // ── helpers ──
 
@@ -29,6 +29,25 @@ function readYaml(filePath) {
 function writeYaml(filePath, data) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, yaml.dump(data, { lineWidth: -1, noRefs: true }), "utf8");
+}
+
+function normalizedCategory(category) {
+  if (category === "backnumber") return "archive";
+  if (category === "nisshi") return "activity-log";
+  return category;
+}
+
+function readCompatYaml(primaryName, legacyName, emptyValue) {
+  const primaryPath = path.join(QUEUE, primaryName);
+  const legacyPath = path.join(QUEUE, legacyName);
+  return readYaml(primaryPath) || readYaml(legacyPath) || emptyValue;
+}
+
+function writeCompatYaml(primaryName, legacyName, data) {
+  const primaryPath = path.join(QUEUE, primaryName);
+  const legacyPath = path.join(QUEUE, legacyName);
+  writeYaml(primaryPath, data);
+  writeYaml(legacyPath, data);
 }
 
 function timestamp() {
@@ -170,8 +189,9 @@ ${formatBoardValue(memo, { empty: "なし" })}
 }
 
 function syncBlackboardFromMeeting(meeting) {
-  const filePath = path.join(BASEDIR, "kokuban.md");
-  fs.writeFileSync(filePath, renderBlackboard(meeting), "utf8");
+  const content = renderBlackboard(meeting);
+  fs.writeFileSync(path.join(BASEDIR, "blackboard.md"), content, "utf8");
+  fs.writeFileSync(path.join(BASEDIR, "kokuban.md"), content, "utf8");
 }
 
 function resetMeetingState() {
@@ -214,12 +234,13 @@ function ensureMeetingProgressDefaults(meeting) {
 }
 
 function writeObsidianNote({ category, title, content, tags = [], related = [] }) {
-  const folderName = OBSIDIAN_FOLDERS[category] || category;
+  const normalized = normalizedCategory(category);
+  const folderName = OBSIDIAN_FOLDERS[normalized] || normalized;
   const dir = path.join(OBSIDIAN_USURAHI, folderName);
   fs.mkdirSync(dir, { recursive: true });
 
   const today = currentDate();
-  const allTags = ["薄氷", category, ...tags];
+  const allTags = ["薄氷", normalized, ...tags];
   const tagLine = allTags.map((t) => `  - ${t}`).join("\n");
 
   let finalContent = content;
@@ -228,7 +249,7 @@ function writeObsidianNote({ category, title, content, tags = [], related = [] }
     finalContent += `\n\n## 関連\n${links}\n`;
   }
 
-  const frontmatter = `---\ndate: ${today}\ncategory: ${category}\ntags:\n${tagLine}\n---\n\n`;
+  const frontmatter = `---\ndate: ${today}\ncategory: ${normalized}\ntags:\n${tagLine}\n---\n\n`;
   const filePath = path.join(dir, `${title}.md`);
   fs.writeFileSync(filePath, frontmatter + finalContent, "utf8");
   return filePath;
@@ -329,10 +350,12 @@ function archiveMeetingLog(meeting) {
   const reports = getReportsForMeeting(meeting.id);
   const content = renderActivityLog(meeting, reports);
 
-  const localDir = path.join(BASEDIR, "nisshi");
+  const localDir = path.join(BASEDIR, "activity-log");
   fs.mkdirSync(localDir, { recursive: true });
   const localPath = path.join(localDir, `${title}.md`);
   fs.writeFileSync(localPath, content, "utf8");
+  fs.mkdirSync(path.join(BASEDIR, "nisshi"), { recursive: true });
+  fs.writeFileSync(path.join(BASEDIR, "nisshi", `${title}.md`), content, "utf8");
 
   const tags = [
     "活動記録",
@@ -340,7 +363,7 @@ function archiveMeetingLog(meeting) {
     ...(meeting.project_path ? [path.basename(meeting.project_path)] : []),
   ];
   writeObsidianNote({
-    category: "nisshi",
+    category: "activity-log",
     title,
     content,
     tags,
@@ -351,9 +374,12 @@ function archiveMeetingLog(meeting) {
 }
 
 function nextBacknumberNumber() {
-  const dir = path.join(BASEDIR, "backnumber");
+  const dir = path.join(BASEDIR, "archive");
   fs.mkdirSync(dir, { recursive: true });
-  const files = fs.readdirSync(dir).filter((file) => /^vol\d+_.*\.md$/i.test(file));
+  const files = [
+    ...(fs.existsSync(dir) ? fs.readdirSync(dir) : []),
+    ...(fs.existsSync(path.join(BASEDIR, "backnumber")) ? fs.readdirSync(path.join(BASEDIR, "backnumber")) : []),
+  ].filter((file) => /^vol\d+_.*\.md$/i.test(file));
   const max = files.reduce((acc, file) => {
     const match = file.match(/^vol(\d+)_/i);
     if (!match) return acc;
@@ -363,7 +389,7 @@ function nextBacknumberNumber() {
 }
 
 function readActivityLogByTitle(title) {
-  const localPath = path.join(BASEDIR, "nisshi", `${title}.md`);
+  const localPath = path.join(BASEDIR, "activity-log", `${title}.md`);
   if (fs.existsSync(localPath)) {
     return {
       title,
@@ -372,7 +398,16 @@ function readActivityLogByTitle(title) {
     };
   }
 
-  const obsidianPath = path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.nisshi, `${title}.md`);
+  const legacyLocalPath = path.join(BASEDIR, "nisshi", `${title}.md`);
+  if (fs.existsSync(legacyLocalPath)) {
+    return {
+      title,
+      content: fs.readFileSync(legacyLocalPath, "utf8"),
+      localPath: legacyLocalPath,
+    };
+  }
+
+  const obsidianPath = path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS["activity-log"], `${title}.md`);
   if (fs.existsSync(obsidianPath)) {
     return {
       title,
@@ -448,13 +483,15 @@ function archiveBacknumber({
     source_excerpt,
   });
 
-  const localDir = path.join(BASEDIR, "backnumber");
+  const localDir = path.join(BASEDIR, "archive");
   fs.mkdirSync(localDir, { recursive: true });
   const localPath = path.join(localDir, filename);
   fs.writeFileSync(localPath, content, "utf8");
+  fs.mkdirSync(path.join(BASEDIR, "backnumber"), { recursive: true });
+  fs.writeFileSync(path.join(BASEDIR, "backnumber", filename), content, "utf8");
 
   writeObsidianNote({
-    category: "backnumber",
+    category: "archive",
     title: filename.replace(/\.md$/, ""),
     content,
     tags: ["バックナンバー", "再利用パターン"],
@@ -610,10 +647,10 @@ const server = new McpServer({
 
 server.tool(
   "get_bulletin",
-  "掲示板(keijiban.yaml)の雑多メモ一覧を取得する。正式依頼の入口ではない。statusでフィルタ可能。",
+  "掲示板(noticeboard.yaml)の雑多メモ一覧を取得する。正式依頼の入口ではない。statusでフィルタ可能。",
   { status: z.enum(["new", "in_progress", "done", "all"]).default("all").describe("フィルタするステータス") },
   async ({ status }) => {
-    const data = readYaml(path.join(QUEUE, "keijiban.yaml"));
+    const data = readCompatYaml("noticeboard.yaml", "keijiban.yaml", { posts: [] });
     if (!data?.posts) return { content: [{ type: "text", text: "投稿なし" }] };
     const posts = status === "all" ? data.posts : data.posts.filter((p) => p.status === status);
     return { content: [{ type: "text", text: yaml.dump(posts, { lineWidth: -1 }) }] };
@@ -630,13 +667,12 @@ server.tool(
     response: z.string().describe("ユーザーへの結果報告テキスト"),
   },
   async ({ post_id, response }) => {
-    const filePath = path.join(QUEUE, "keijiban.yaml");
-    const data = readYaml(filePath) || { posts: [] };
+    const data = readCompatYaml("noticeboard.yaml", "keijiban.yaml", { posts: [] });
     const post = data.posts?.find((p) => p.id === post_id);
     if (!post) return { content: [{ type: "text", text: `エラー: ${post_id} が見つからない` }] };
     post.status = "done";
     post.response = response;
-    writeYaml(filePath, data);
+    writeCompatYaml("noticeboard.yaml", "keijiban.yaml", data);
     return { content: [{ type: "text", text: `${post_id} を done に更新、レスポンス追記完了` }] };
   }
 );
@@ -948,7 +984,7 @@ server.tool(
   "save_to_obsidian",
   "Obsidian Vaultにナレッジノートを保存する。バックナンバーや日誌をObsidianに記録する時に使う。フロントマター(tags, date等)とwiki-linkを自動付与。",
   {
-    category: z.enum(["backnumber", "nisshi", "library"]).describe("保存先カテゴリ（backnumber=氷菓/部会知見, nisshi=日誌, library=薄氷図書館/汎用ナレッジ）"),
+    category: z.enum(["archive", "activity-log", "backnumber", "nisshi", "library"]).describe("保存先カテゴリ"),
     title: z.string().describe("ノートのタイトル（ファイル名になる）"),
     content: z.string().describe("ノートの本文（Markdown）"),
     tags: z.array(z.string()).default([]).describe("タグ一覧 (例: ['TypeScript', 'テスト', '設計パターン'])"),
@@ -1020,17 +1056,18 @@ server.tool(
   "Obsidian Vault内の薄氷ナレッジを検索する。過去の知見を参照したい時に使う。キーワードでファイル名と内容を横断検索。",
   {
     query: z.string().describe("検索キーワード"),
-    category: z.enum(["backnumber", "nisshi", "library", "all"]).default("all").describe("検索対象カテゴリ"),
+    category: z.enum(["archive", "activity-log", "backnumber", "nisshi", "library", "all"]).default("all").describe("検索対象カテゴリ"),
   },
   async ({ query, category }) => {
+    const normalized = normalizedCategory(category);
     const searchDirs = [];
-    if (category === "all" || category === "backnumber") {
-      searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.backnumber));
+    if (normalized === "all" || normalized === "archive") {
+      searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.archive));
     }
-    if (category === "all" || category === "nisshi") {
-      searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.nisshi));
+    if (normalized === "all" || normalized === "activity-log") {
+      searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS["activity-log"]));
     }
-    if (category === "all" || category === "library") {
+    if (normalized === "all" || normalized === "library") {
       searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.library));
     }
 
@@ -1082,10 +1119,10 @@ server.tool(
   "Obsidian Vault内の薄氷ノートを読む。search_obsidianで見つけたノートの詳細を確認する時に使う。",
   {
     title: z.string().describe("ノートのタイトル（拡張子なし）"),
-    category: z.enum(["backnumber", "nisshi", "library"]).default("backnumber").describe("カテゴリ"),
+    category: z.enum(["archive", "activity-log", "backnumber", "nisshi", "library"]).default("archive").describe("カテゴリ"),
   },
   async ({ title, category }) => {
-    const folderName = OBSIDIAN_FOLDERS[category] || category;
+    const folderName = OBSIDIAN_FOLDERS[normalizedCategory(category)] || normalizedCategory(category);
     const filePath = path.join(OBSIDIAN_USURAHI, folderName, `${title}.md`);
     if (!fs.existsSync(filePath)) {
       return { content: [{ type: "text", text: `ノートが見つからない: ${title}` }] };
@@ -1105,8 +1142,7 @@ server.tool(
     note: z.string().default("").describe("メモ（任意）"),
   },
   async ({ url, note }) => {
-    const filePath = path.join(QUEUE, "toshoshitsu_queue.yaml");
-    const data = readYaml(filePath) || { urls: [] };
+    const data = readCompatYaml("library_queue.yaml", "toshoshitsu_queue.yaml", { urls: [] });
     if (!data.urls) data.urls = [];
 
     // 重複チェック
@@ -1120,7 +1156,7 @@ server.tool(
       status: "pending",
       added_at: timestamp(),
     });
-    writeYaml(filePath, data);
+    writeCompatYaml("library_queue.yaml", "toshoshitsu_queue.yaml", data);
     const pending = data.urls.filter((u) => u.status === "pending").length;
     return { content: [{ type: "text", text: `キューに追加: ${url}（未処理: ${pending}件）` }] };
   }
@@ -1135,7 +1171,7 @@ server.tool(
     status: z.enum(["pending", "done", "all"]).default("pending").describe("フィルタするステータス"),
   },
   async ({ status }) => {
-    const data = readYaml(path.join(QUEUE, "toshoshitsu_queue.yaml"));
+    const data = readCompatYaml("library_queue.yaml", "toshoshitsu_queue.yaml", { urls: [] });
     if (!data?.urls || data.urls.length === 0) return { content: [{ type: "text", text: "キューは空" }] };
     const urls = status === "all" ? data.urls : data.urls.filter((u) => u.status === status);
     if (urls.length === 0) return { content: [{ type: "text", text: `${status}のURLなし` }] };
@@ -1153,13 +1189,12 @@ server.tool(
     status: z.enum(["done", "failed"]).describe("新しいステータス"),
   },
   async ({ url, status }) => {
-    const filePath = path.join(QUEUE, "toshoshitsu_queue.yaml");
-    const data = readYaml(filePath) || { urls: [] };
+    const data = readCompatYaml("library_queue.yaml", "toshoshitsu_queue.yaml", { urls: [] });
     const item = data.urls?.find((u) => u.url === url);
     if (!item) return { content: [{ type: "text", text: `キューに見つからない: ${url}` }] };
     item.status = status;
     item.processed_at = timestamp();
-    writeYaml(filePath, data);
+    writeCompatYaml("library_queue.yaml", "toshoshitsu_queue.yaml", data);
     return { content: [{ type: "text", text: `${url} を ${status} に更新` }] };
   }
 );

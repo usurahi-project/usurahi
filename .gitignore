@@ -15,9 +15,12 @@ sample-project/node_modules/
 logs/*.log
 
 # Runtime state
+blackboard.md
 kokuban.md
 queue/gijiroku.yaml
+queue/noticeboard.yaml
 queue/keijiban.yaml
+queue/library_queue.yaml
 queue/room_requests.yaml
 queue/toshokan_queue.yaml
 queue/toshoshitsu_queue.yaml
@@ -25,6 +28,8 @@ queue/reports/*.yaml
 queue/tasks/*.yaml
 
 # Local knowledge / private drafts
+archive/
+activity-log/
 backnumber/
 keijiban/
 nisshi/
