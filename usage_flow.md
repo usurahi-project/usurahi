@@ -15,14 +15,15 @@
 ### 部活を起動する
 
 ```bash
-./kaigi.sh
+./meeting.sh
 ```
 
 起きること:
 
 - えるとハルヒが起動する
-- `keijiban` セッションがえる用に立ち上がる
-- `bushitsu` セッションが部室として立ち上がる
+- `noticeboard` セッションがえる用に立ち上がる
+- `clubroom` セッションが部室として立ち上がる
+- `clubroom` には上段にハルヒ・黒板・える表示、下段に折木・キョン・長門の 6 pane が並ぶ
 - 黒板とキューの現在状態を見ながら会話できる
 
 得られる体験:
@@ -34,7 +35,7 @@
 ### まっさらな状態から始める
 
 ```bash
-./kaigi.sh -c
+./meeting.sh -c
 ```
 
 起きること:
@@ -51,12 +52,13 @@
 ### 最初から全員呼ぶ
 
 ```bash
-./kaigi.sh -a
+./meeting.sh -a
 ```
 
 起きること:
 
 - える、ハルヒ、折木、キョン、長門が全員起動する
+- `clubroom` の黒板 pane も含めて、会議の全景が揃う
 
 得られる体験:
 
@@ -66,7 +68,7 @@
 ### 途中で部員を呼ぶ
 
 ```bash
-./kaigi.sh -w
+./meeting.sh -w
 ```
 
 起きること:
@@ -80,7 +82,7 @@
 ### 部室だけ開ける
 
 ```bash
-./kaigi.sh -s
+./meeting.sh -s
 ```
 
 起きること:
@@ -95,12 +97,12 @@
 ### 下校する
 
 ```bash
-./kaigi.sh -k
+./meeting.sh -k
 ```
 
 起きること:
 
-- `keijiban` と `bushitsu` セッションを閉じる
+- `noticeboard` と `clubroom` セッションを閉じる
 
 得られる体験:
 
@@ -111,7 +113,7 @@
 ### えるに話しかける
 
 ```bash
-tmux attach -t keijiban
+tmux attach -t noticeboard
 ```
 
 これは正式依頼の入口である。
@@ -139,13 +141,15 @@ sample-project の TODO CLI を、世界観はそのままで使いやすくし�
 ### 部室を覗く
 
 ```bash
-tmux attach -t bushitsu
+tmux attach -t clubroom
 ```
 
 起きること:
 
 - ハルヒ、折木、キョン、長門のやり取りを見られる
-- 実際には `kokuban.md` の現在値と `gijiroku.yaml` の内部状態をもとに部活が進む
+- えるは `noticeboard` 本体に加えて、`clubroom` に表示 pane を持つ
+- 黒板 pane で `blackboard.md` の現在値を常時見られる
+- 実際には `blackboard.md` の現在値と `gijiroku.yaml` の内部状態をもとに部活が進む
 
 得られる体験:
 
@@ -156,7 +160,7 @@ tmux attach -t bushitsu
 
 依頼後の流れはこうなる。
 
-1. ユーザーが `keijiban` セッションでえるに話しかける
+1. ユーザーが `noticeboard` セッションでえるに話しかける
 2. えるが背景や意図を確認する
 3. えるが正式依頼として受け、会議を立ち上げる
 4. ハルヒが方向を押す
@@ -177,7 +181,7 @@ tmux attach -t bushitsu
 ### 任意の部員に連絡する
 
 ```bash
-./scripts/renraku.sh <送信先> "<メッセージ>"
+./scripts/notify.sh <送信先> "<メッセージ>"
 ```
 
 送信先:
@@ -191,9 +195,9 @@ tmux attach -t bushitsu
 例:
 
 ```bash
-./scripts/renraku.sh eru "その方針で進めてください。"
-./scripts/renraku.sh haruhi "もっと面白さを優先したいです。"
-./scripts/renraku.sh kyon "その実装だと運用で困らない？"
+./scripts/notify.sh eru "その方針で進めてください。"
+./scripts/notify.sh haruhi "もっと面白さを優先したいです。"
+./scripts/notify.sh kyon "その実装だと運用で困らない？"
 ```
 
 起きること:
@@ -211,7 +215,7 @@ tmux attach -t bushitsu
 ### URLキューを処理する
 
 ```bash
-./toshoshitsu.sh
+./library.sh
 ```
 
 起きること:
@@ -228,7 +232,7 @@ tmux attach -t bushitsu
 ### 未処理URLを確認する
 
 ```bash
-./toshoshitsu.sh -l
+./library.sh -l
 ```
 
 起きること:
@@ -251,13 +255,13 @@ Slack Bridge が動いていれば、次の体験もある。
 
 一番自然な使い方はこれ。
 
-1. `./kaigi.sh -c`
-2. `tmux attach -t keijiban`
+1. `./meeting.sh -c`
+2. `tmux attach -t noticeboard`
 3. えるに依頼を自然文で話す
-4. 必要なら `tmux attach -t bushitsu` で部室を見る
-5. 途中で口を挟きたければ `./scripts/renraku.sh ...`
+4. 必要なら `tmux attach -t clubroom` で部室を見る
+5. 途中で口を挟きたければ `./scripts/notify.sh ...`
 6. 結論を受け取る
-7. 必要なら `./kaigi.sh -k`
+7. 必要なら `./meeting.sh -k`
 
 ## 8. 今の実装で強い点
 
@@ -268,20 +272,6 @@ Slack Bridge が動いていれば、次の体験もある。
 
 ## 9. 今の実装でまだ弱い点
 
-- 専用の正式依頼CLIはまだない
-- いまの正式依頼の実体験は「えるに話しかける」が中心
-- つまり世界観としては自然だが、CLI製品としては入口が少し暗い
-
-いまの設計思想には合っているが、外向けに公開するなら、いずれ次のような専用入口を足す価値がある。
-
-```bash
-./request.sh "依頼本文"
-```
-
-または
-
-```bash
-./request.sh --title "..." --background "..."
-```
-
-これを足すと、「世界観を壊さずに、初見でも使い方がわかる」状態に近づく。
+- tmux の画面構成はまだ仮置きで、黒板 pane の比重や並び順は改善余地がある
+- 受付の `noticeboard` と会議の `clubroom` の役割差は、もう少し見た目で伝えたい
+- 外向けには `request.sh` と自然文受付の併用ルールを、もう一段わかりやすくできる

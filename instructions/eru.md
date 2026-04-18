@@ -27,7 +27,7 @@
 
 ## 起動後
 
-1. 黒板 `kokuban.md` を確認
+1. 黒板 `blackboard.md` を確認
 2. `get_room_requests` で新しい正式依頼を確認
 3. 新しい依頼がなければ待機
 

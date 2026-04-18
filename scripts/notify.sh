@@ -2,16 +2,16 @@
 set -euo pipefail
 
 #=============================================================================
-# renraku.sh — 連絡網（エージェント間メッセージ送信）
+# notify.sh — 連絡網（エージェント間メッセージ送信）
 #=============================================================================
 # Usage:
-#   ./scripts/renraku.sh <送信先> <メッセージ>
+#   ./scripts/notify.sh <送信先> <メッセージ>
 #
 # 送信先: eru, haruhi, oreki, kyon, nagato
 #
 # Examples:
-#   ./scripts/renraku.sh eru "タスク完了しました"
-#   ./scripts/renraku.sh haruhi "レビューお願いします"
+#   ./scripts/notify.sh eru "タスク完了しました"
+#   ./scripts/notify.sh haruhi "レビューお願いします"
 #=============================================================================
 
 BASEDIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,11 +22,11 @@ STALE_SECONDS=30
 resolve_pane() {
     local target="$1"
     case "$target" in
-        eru)     echo "keijiban.0" ;;
-        haruhi)  echo "bushitsu.0" ;;
-        oreki)   echo "bushitsu.1" ;;
-        kyon)    echo "bushitsu.2" ;;
-        nagato)  echo "bushitsu.3" ;;
+        eru)     echo "noticeboard.0" ;;
+        haruhi)  echo "clubroom.0" ;;
+        oreki)   echo "clubroom.1" ;;
+        kyon)    echo "clubroom.2" ;;
+        nagato)  echo "clubroom.3" ;;
         *)
             echo "エラー: 不明な送信先 '$target'" >&2
             echo "  使用可能: eru, haruhi, oreki, kyon, nagato" >&2

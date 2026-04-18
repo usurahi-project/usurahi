@@ -8,13 +8,13 @@ YAML を直接編集しない。
 ## 正式依頼
 
 - 正式依頼の入口: `room_requests.yaml`
-- 掲示板: `keijiban.yaml`
+- 掲示板: `noticeboard.yaml`
 - 掲示板は正式依頼の入口ではない
 
 ## 連絡
 
 ```bash
-~/usurahi/scripts/renraku.sh <送信先> "<メッセージ>"
+~/usurahi/scripts/notify.sh <送信先> "<メッセージ>"
 ```
 
 送信先:
@@ -34,6 +34,6 @@ YAML を直接編集しない。
 
 ## ナレッジ
 
-- `backnumber`: 図書館/薄氷バックナンバー/
-- `nisshi`: 部室/活動記録/
+- `archive`: 図書館/薄氷バックナンバー/
+- `activity_log`: 部室/活動記録/
 - `library`: 図書館/開架/

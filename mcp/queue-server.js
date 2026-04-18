@@ -16,7 +16,7 @@ const BASEDIR = path.join(process.env.HOME, "usurahi");
 const QUEUE = path.join(BASEDIR, "queue");
 const OBSIDIAN_VAULT = path.join(process.env.HOME, "Documents", "Obsidian Vault");
 const OBSIDIAN_USURAHI = path.join(OBSIDIAN_VAULT, "薄氷");
-const OBSIDIAN_FOLDERS = { backnumber: "図書館/薄氷バックナンバー", nisshi: "部室/活動記録", library: "図書館/開架" };
+const OBSIDIAN_FOLDERS = { archive: "図書館/薄氷バックナンバー", activity_log: "部室/活動記録", library: "図書館/開架" };
 
 // ── helpers ──
 
@@ -170,7 +170,7 @@ ${formatBoardValue(memo, { empty: "なし" })}
 }
 
 function syncBlackboardFromMeeting(meeting) {
-  const filePath = path.join(BASEDIR, "kokuban.md");
+  const filePath = path.join(BASEDIR, "blackboard.md");
   fs.writeFileSync(filePath, renderBlackboard(meeting), "utf8");
 }
 
@@ -329,7 +329,7 @@ function archiveMeetingLog(meeting) {
   const reports = getReportsForMeeting(meeting.id);
   const content = renderActivityLog(meeting, reports);
 
-  const localDir = path.join(BASEDIR, "nisshi");
+  const localDir = path.join(BASEDIR, "activity-log");
   fs.mkdirSync(localDir, { recursive: true });
   const localPath = path.join(localDir, `${title}.md`);
   fs.writeFileSync(localPath, content, "utf8");
@@ -340,7 +340,7 @@ function archiveMeetingLog(meeting) {
     ...(meeting.project_path ? [path.basename(meeting.project_path)] : []),
   ];
   writeObsidianNote({
-    category: "nisshi",
+    category: "activity_log",
     title,
     content,
     tags,
@@ -351,7 +351,7 @@ function archiveMeetingLog(meeting) {
 }
 
 function nextBacknumberNumber() {
-  const dir = path.join(BASEDIR, "backnumber");
+  const dir = path.join(BASEDIR, "archive");
   fs.mkdirSync(dir, { recursive: true });
   const files = fs.readdirSync(dir).filter((file) => /^vol\d+_.*\.md$/i.test(file));
   const max = files.reduce((acc, file) => {
@@ -363,7 +363,7 @@ function nextBacknumberNumber() {
 }
 
 function readActivityLogByTitle(title) {
-  const localPath = path.join(BASEDIR, "nisshi", `${title}.md`);
+  const localPath = path.join(BASEDIR, "activity-log", `${title}.md`);
   if (fs.existsSync(localPath)) {
     return {
       title,
@@ -372,7 +372,7 @@ function readActivityLogByTitle(title) {
     };
   }
 
-  const obsidianPath = path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.nisshi, `${title}.md`);
+  const obsidianPath = path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.activity_log, `${title}.md`);
   if (fs.existsSync(obsidianPath)) {
     return {
       title,
@@ -448,13 +448,13 @@ function archiveBacknumber({
     source_excerpt,
   });
 
-  const localDir = path.join(BASEDIR, "backnumber");
+  const localDir = path.join(BASEDIR, "archive");
   fs.mkdirSync(localDir, { recursive: true });
   const localPath = path.join(localDir, filename);
   fs.writeFileSync(localPath, content, "utf8");
 
   writeObsidianNote({
-    category: "backnumber",
+    category: "archive",
     title: filename.replace(/\.md$/, ""),
     content,
     tags: ["バックナンバー", "再利用パターン"],
@@ -610,10 +610,10 @@ const server = new McpServer({
 
 server.tool(
   "get_bulletin",
-  "掲示板(keijiban.yaml)の雑多メモ一覧を取得する。正式依頼の入口ではない。statusでフィルタ可能。",
+  "掲示板(noticeboard.yaml)の雑多メモ一覧を取得する。正式依頼の入口ではない。statusでフィルタ可能。",
   { status: z.enum(["new", "in_progress", "done", "all"]).default("all").describe("フィルタするステータス") },
   async ({ status }) => {
-    const data = readYaml(path.join(QUEUE, "keijiban.yaml"));
+    const data = readYaml(path.join(QUEUE, "noticeboard.yaml"));
     if (!data?.posts) return { content: [{ type: "text", text: "投稿なし" }] };
     const posts = status === "all" ? data.posts : data.posts.filter((p) => p.status === status);
     return { content: [{ type: "text", text: yaml.dump(posts, { lineWidth: -1 }) }] };
@@ -630,7 +630,7 @@ server.tool(
     response: z.string().describe("ユーザーへの結果報告テキスト"),
   },
   async ({ post_id, response }) => {
-    const filePath = path.join(QUEUE, "keijiban.yaml");
+    const filePath = path.join(QUEUE, "noticeboard.yaml");
     const data = readYaml(filePath) || { posts: [] };
     const post = data.posts?.find((p) => p.id === post_id);
     if (!post) return { content: [{ type: "text", text: `エラー: ${post_id} が見つからない` }] };
@@ -946,9 +946,9 @@ server.tool(
 
 server.tool(
   "save_to_obsidian",
-  "Obsidian Vaultにナレッジノートを保存する。バックナンバーや日誌をObsidianに記録する時に使う。フロントマター(tags, date等)とwiki-linkを自動付与。",
+  "Obsidian Vaultにナレッジノートを保存する。アーカイブや活動記録をObsidianに記録する時に使う。フロントマター(tags, date等)とwiki-linkを自動付与。",
   {
-    category: z.enum(["backnumber", "nisshi", "library"]).describe("保存先カテゴリ（backnumber=氷菓/部会知見, nisshi=日誌, library=薄氷図書館/汎用ナレッジ）"),
+    category: z.enum(["archive", "activity_log", "library"]).describe("保存先カテゴリ（archive=氷菓/部会知見, activity_log=活動記録, library=薄氷図書館/汎用ナレッジ）"),
     title: z.string().describe("ノートのタイトル（ファイル名になる）"),
     content: z.string().describe("ノートの本文（Markdown）"),
     tags: z.array(z.string()).default([]).describe("タグ一覧 (例: ['TypeScript', 'テスト', '設計パターン'])"),
@@ -962,10 +962,10 @@ server.tool(
   }
 );
 
-// ── 16. create_backnumber ──
+// ── 16. create_archive_entry ──
 
 server.tool(
-  "create_backnumber",
+  "create_archive_entry",
   "活動記録からバックナンバーを編む。『面白い』『次に使える』の両方が揃った時だけ使う。",
   {
     source_title: z.string().describe("元になった活動記録のタイトル"),
@@ -1020,15 +1020,15 @@ server.tool(
   "Obsidian Vault内の薄氷ナレッジを検索する。過去の知見を参照したい時に使う。キーワードでファイル名と内容を横断検索。",
   {
     query: z.string().describe("検索キーワード"),
-    category: z.enum(["backnumber", "nisshi", "library", "all"]).default("all").describe("検索対象カテゴリ"),
+    category: z.enum(["archive", "activity_log", "library", "all"]).default("all").describe("検索対象カテゴリ"),
   },
   async ({ query, category }) => {
     const searchDirs = [];
-    if (category === "all" || category === "backnumber") {
-      searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.backnumber));
+    if (category === "all" || category === "archive") {
+      searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.archive));
     }
-    if (category === "all" || category === "nisshi") {
-      searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.nisshi));
+    if (category === "all" || category === "activity_log") {
+      searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.activity_log));
     }
     if (category === "all" || category === "library") {
       searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.library));
@@ -1082,7 +1082,7 @@ server.tool(
   "Obsidian Vault内の薄氷ノートを読む。search_obsidianで見つけたノートの詳細を確認する時に使う。",
   {
     title: z.string().describe("ノートのタイトル（拡張子なし）"),
-    category: z.enum(["backnumber", "nisshi", "library"]).default("backnumber").describe("カテゴリ"),
+    category: z.enum(["archive", "activity_log", "library"]).default("archive").describe("カテゴリ"),
   },
   async ({ title, category }) => {
     const folderName = OBSIDIAN_FOLDERS[category] || category;
@@ -1095,17 +1095,17 @@ server.tool(
   }
 );
 
-// ── 19. add_to_toshoshitsu_queue ──
+// ── 19. add_to_library_queue ──
 
 server.tool(
-  "add_to_toshoshitsu_queue",
-  "薄氷図書館のURLキューにURLを追加する。/toshoshitsuスキルから呼ばれる。",
+  "add_to_library_queue",
+  "薄氷図書館のURLキューにURLを追加する。/libraryスキルから呼ばれる。",
   {
     url: z.string().describe("追加するURL"),
     note: z.string().default("").describe("メモ（任意）"),
   },
   async ({ url, note }) => {
-    const filePath = path.join(QUEUE, "toshoshitsu_queue.yaml");
+    const filePath = path.join(QUEUE, "library_queue.yaml");
     const data = readYaml(filePath) || { urls: [] };
     if (!data.urls) data.urls = [];
 
@@ -1126,16 +1126,16 @@ server.tool(
   }
 );
 
-// ── 20. get_toshoshitsu_queue ──
+// ── 20. get_library_queue ──
 
 server.tool(
-  "get_toshoshitsu_queue",
+  "get_library_queue",
   "薄氷図書館のURLキューを取得する。摩耶花が処理対象を確認する時に使う。",
   {
     status: z.enum(["pending", "done", "all"]).default("pending").describe("フィルタするステータス"),
   },
   async ({ status }) => {
-    const data = readYaml(path.join(QUEUE, "toshoshitsu_queue.yaml"));
+    const data = readYaml(path.join(QUEUE, "library_queue.yaml"));
     if (!data?.urls || data.urls.length === 0) return { content: [{ type: "text", text: "キューは空" }] };
     const urls = status === "all" ? data.urls : data.urls.filter((u) => u.status === status);
     if (urls.length === 0) return { content: [{ type: "text", text: `${status}のURLなし` }] };
@@ -1143,17 +1143,17 @@ server.tool(
   }
 );
 
-// ── 21. update_toshoshitsu_queue ──
+// ── 21. update_library_queue ──
 
 server.tool(
-  "update_toshoshitsu_queue",
+  "update_library_queue",
   "薄氷図書館のURLキューのアイテムのstatusを更新する。摩耶花が処理完了時に使う。",
   {
     url: z.string().describe("対象のURL"),
     status: z.enum(["done", "failed"]).describe("新しいステータス"),
   },
   async ({ url, status }) => {
-    const filePath = path.join(QUEUE, "toshoshitsu_queue.yaml");
+    const filePath = path.join(QUEUE, "library_queue.yaml");
     const data = readYaml(filePath) || { urls: [] };
     const item = data.urls?.find((u) => u.url === url);
     if (!item) return { content: [{ type: "text", text: `キューに見つからない: ${url}` }] };
