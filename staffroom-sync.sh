@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
-SOURCE_DIR="$BASEDIR/shokuinshitsu"
+SOURCE_DIR="$BASEDIR/staffroom"
 TARGET_DIR="${OBSIDIAN_STAFFROOM_DIR:-$HOME/Documents/Obsidian Vault/薄氷/職員室}"
 
 usage() {
@@ -18,11 +18,11 @@ EOF
 }
 
 declare -a SYNC_MAP=(
-  "usurahi_shokuinshitsu_annai.md:職員室の案内.md"
-  "usurahi_how_to_use.md:薄氷の使い方.md"
-  "usurahi_world_and_roles.md:薄氷の世界観と役割.md"
-  "usurahi_technical_design.md:薄氷の技術設計.md"
-  "usurahi_naming_map.md:薄氷の命名対応表.md"
+  "overview.md:職員室の案内.md"
+  "how_to_use.md:薄氷の使い方.md"
+  "world_and_roles.md:薄氷の世界観と役割.md"
+  "technical_design.md:薄氷の技術設計.md"
+  "naming_principles.md:薄氷の命名原則.md"
 )
 
 list_targets() {

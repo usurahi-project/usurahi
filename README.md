@@ -100,11 +100,11 @@ tmux attach -t clubroom
 
 ## 文書案内
 
-- 職員室の案内: [職員室 / 職員室の案内](./shokuinshitsu/usurahi_shokuinshitsu_annai.md)
-- 詳しい使い方: [職員室 / 薄氷の使い方](./shokuinshitsu/usurahi_how_to_use.md)
-- 世界観と役割: [職員室 / 薄氷の世界観と役割](./shokuinshitsu/usurahi_world_and_roles.md)
-- 技術設計: [職員室 / 薄氷の技術設計](./shokuinshitsu/usurahi_technical_design.md)
-- 職員室の入口: [shokuinshitsu/README.md](./shokuinshitsu/README.md)
+- 職員室の案内: [職員室 / 職員室の案内](./staffroom/overview.md)
+- 詳しい使い方: [職員室 / 薄氷の使い方](./staffroom/how_to_use.md)
+- 世界観と役割: [職員室 / 薄氷の世界観と役割](./staffroom/world_and_roles.md)
+- 技術設計: [職員室 / 薄氷の技術設計](./staffroom/technical_design.md)
+- 職員室の入口: [staffroom/README.md](./staffroom/README.md)
 
 ## 補足
 

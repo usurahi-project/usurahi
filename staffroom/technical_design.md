@@ -3,9 +3,9 @@
 ## 関連
 
 - [README](../README.md)
-- [職員室の案内](./usurahi_shokuinshitsu_annai.md)
-- [薄氷の使い方](./usurahi_how_to_use.md)
-- [薄氷の世界観と役割](./usurahi_world_and_roles.md)
+- [職員室の案内](./overview.md)
+- [薄氷の使い方](./how_to_use.md)
+- [薄氷の世界観と役割](./world_and_roles.md)
 
 ## 技術的に成立させたいこと
 
@@ -24,7 +24,7 @@
 5. `meeting.blackboard` から `blackboard.md` を自動反映する
 6. 提出時は `respond_room_request` で正式依頼を閉じる
 7. 同時に活動記録を自動保存する
-8. 条件が揃った時だけ `create_archive_entry` でバックナンバー化する
+8. 条件が揃った時だけ `create_archive_entry` でアーカイブ化する
 
 ## 進行原則
 
@@ -133,9 +133,9 @@
 - `activity-log/`
 - `薄氷/部室/活動記録/`
 
-## バックナンバー
+## アーカイブ
 
-バックナンバーは活動記録の圧縮版ではない。
+アーカイブは活動記録の圧縮版ではない。
 活動記録から抽出した「次も使いたいやり方」である。
 
 作成条件:
@@ -150,10 +150,10 @@
 - 世界観と内部状態がつながっている
 - 黒板が自動反映される
 - 提出と活動記録保存がつながっている
-- 学びをバックナンバーへ昇華できる
+- 学びをアーカイブへ昇華できる
 
 ## 今後の拡張候補
 
 - 専用の依頼CLI
 - 職員室ノートの Obsidian 自動保存
-- バックナンバーから skill / instruction への昇格フローの明文化
+- アーカイブから skill / instruction への昇格フローの明文化

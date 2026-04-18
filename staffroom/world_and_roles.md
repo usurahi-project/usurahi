@@ -3,9 +3,9 @@
 ## 関連
 
 - [README](../README.md)
-- [職員室の案内](./usurahi_shokuinshitsu_annai.md)
-- [薄氷の使い方](./usurahi_how_to_use.md)
-- [薄氷の技術設計](./usurahi_technical_design.md)
+- [職員室の案内](./overview.md)
+- [薄氷の使い方](./how_to_use.md)
+- [薄氷の技術設計](./technical_design.md)
 
 ## 薄氷は何か
 
