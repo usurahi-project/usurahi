@@ -80,14 +80,19 @@ tmux attach -t clubroom
 ## よく使うコマンド
 
 ```bash
-./meeting.sh -c   # 初期化して起動
-./meeting.sh -a   # 最初から全員起動
-./meeting.sh -w   # 後から部員を呼ぶ
-./meeting.sh -k   # 終了
-./request.sh "依頼本文"  # 正式依頼入口
-./request.sh -l          # 正式依頼一覧
-./library.sh    # 図書室の未処理URLを処理
-./library.sh -l # 図書室キュー一覧
+./meeting.sh -c                                   # 初期化して起動
+./meeting.sh -a                                   # 最初から全員起動
+./meeting.sh -w                                   # 後から部員を呼ぶ
+./meeting.sh -k                                   # 終了
+./request.sh "依頼本文"                           # 正式依頼入口
+./request.sh -l                                   # 正式依頼一覧
+./library.sh add <url> --note "ひとこと"          # 図書室カウンターへ追加
+./library.sh add <x-url> --excerpt "抜粋本文"     # X投稿を非課金で追加
+./library.sh                                      # 図書室の未処理URLを処理
+./library.sh -l                                   # 図書室キュー一覧
+./library.sh --failed                             # 失敗したURL一覧
+./library.sh retry --failed                       # 失敗したURLを再試行へ戻す
+./library.sh refetch --failed                     # 失敗したURLを再取得前提で戻す
 ```
 
 ## 情報はどこに残るか
@@ -110,3 +115,25 @@ tmux attach -t clubroom
 
 いまは `request.sh` が正式依頼入口です。
 えるへの自然文は世界観として残しつつ、状態遷移の入口は薄いCLIで安定させています。
+
+図書室は `add -> list -> run -> retry/refetch` の流れで回せます。
+Zenn / Qiita / 公式 docs は URL のまま主線に乗せられます。
+X 投稿は `URL + excerpt` を主線にしておくと、課金なしでも安定して回せます。
+`X_BEARER_TOKEN` は任意の補助機能です。
+
+- `retry`: 取得済み本文は残し、要約だけやり直す
+- `refetch`: 取得済み本文も捨てて、材料から取り直す
+
+入口は複数に見えても、主線は絞っています。
+
+- 正式依頼: `./request.sh`
+- 図書室投入: `./library.sh add`
+- `noticeboard` はメモ置き場で、正式依頼入口ではない
+- Slack を使う場合も、主線入口へ流し込む補助経路として扱います
+
+図書室では、摩耶花に処理全体を背負わせません。
+`library.sh` が進行と保存を握り、摩耶花はタイトル・要約・タグ・一言に集中します。
+摩耶花は `clubroom` の部員ではなく、`library` の独立オペレータです。
+
+内部で Claude Code を呼ぶ時は、`scripts/claude-app.sh` を経由します。
+これは `ANTHROPIC_API_KEY` を無効化して、Claude App の Pro / Max 認証を優先するためです。

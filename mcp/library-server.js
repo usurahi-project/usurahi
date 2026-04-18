@@ -35,6 +35,57 @@ function timestamp() {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "");
 }
 
+function extractXMeta(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl);
+    if (!["x.com", "www.x.com", "twitter.com", "www.twitter.com"].includes(parsed.hostname)) {
+      return null;
+    }
+    const match = parsed.pathname.match(/^\/([^/]+)\/status\/(\d+)/);
+    if (!match) return null;
+    return { sourceType: "x", authorHint: match[1], postId: match[2] };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchXPost(postId) {
+  const token = process.env.X_BEARER_TOKEN;
+  if (!token) {
+    return { ok: false, error: "X_BEARER_TOKEN is not set", fetch_status: "skipped" };
+  }
+
+  const endpoint = new URL(`https://api.x.com/2/tweets/${postId}`);
+  endpoint.searchParams.set("expansions", "author_id");
+  endpoint.searchParams.set("tweet.fields", "author_id,created_at,text");
+  endpoint.searchParams.set("user.fields", "username,name");
+
+  const response = await fetch(endpoint, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = payload?.detail || payload?.title || `HTTP ${response.status}`;
+    return { ok: false, error, fetch_status: "failed" };
+  }
+
+  const author = payload?.includes?.users?.[0] || {};
+  return {
+    ok: true,
+    data: {
+      post_id: payload?.data?.id || postId,
+      text: payload?.data?.text || "",
+      author: author.username || "",
+      author_name: author.name || "",
+      posted_at: payload?.data?.created_at || "",
+      fetched_at: timestamp(),
+    },
+  };
+}
+
 // ── server ──
 
 const server = new McpServer({
@@ -50,8 +101,10 @@ server.tool(
   {
     url: z.string().describe("追加するURL"),
     note: z.string().default("").describe("ひとことメモ（任意）"),
+    intent: z.string().default("").describe("保存意図（任意）"),
+    excerpt: z.string().default("").describe("抜粋本文。Xはこれを推奨"),
   },
-  async ({ url, note }) => {
+  async ({ url, note, intent, excerpt }) => {
     const filePath = path.join(QUEUE, "library_queue.yaml");
     const data = readYaml(filePath) || { urls: [] };
     if (!data.urls) data.urls = [];
@@ -60,7 +113,29 @@ server.tool(
       return { content: [{ type: "text", text: `既にキューにある: ${url}` }] };
     }
 
-    data.urls.push({ url, note, status: "pending", added_at: timestamp() });
+    const item = { url, note, intent, excerpt, status: "pending", added_at: timestamp() };
+    const xMeta = extractXMeta(url);
+    if (xMeta) {
+      item.source_type = xMeta.sourceType;
+      item.post_id = xMeta.postId;
+      item.author_hint = xMeta.authorHint;
+      if (excerpt) {
+        item.fetch_status = "manual";
+      } else {
+        const fetched = await fetchXPost(xMeta.postId);
+        item.fetch_status = fetched.ok ? "done" : (fetched.fetch_status || "failed");
+        if (fetched.ok) {
+          Object.assign(item, fetched.data);
+        } else {
+          item.fetch_error = fetched.error;
+        }
+      }
+    } else {
+      item.source_type = "link";
+      item.fetch_status = "not-needed";
+    }
+
+    data.urls.push(item);
     writeYaml(filePath, data);
     const pending = data.urls.filter((u) => u.status === "pending").length;
     return { content: [{ type: "text", text: `キューに追加: ${url}（未処理: ${pending}件）` }] };
@@ -81,6 +156,30 @@ server.tool(
     const urls = status === "all" ? data.urls : data.urls.filter((u) => u.status === status);
     if (urls.length === 0) return { content: [{ type: "text", text: `${status}のURLなし` }] };
     return { content: [{ type: "text", text: yaml.dump(urls, { lineWidth: -1 }) }] };
+  }
+);
+
+// ── 3.5 fetch_x_post ──
+
+server.tool(
+  "fetch_x_post",
+  "Xの投稿URLまたは投稿IDから本文を取得する。",
+  {
+    url: z.string().optional().describe("X投稿URL"),
+    post_id: z.string().optional().describe("X投稿ID"),
+  },
+  async ({ url, post_id }) => {
+    const derived = post_id ? { postId: post_id } : extractXMeta(url || "");
+    if (!derived?.postId) {
+      return { content: [{ type: "text", text: "有効なX投稿URLまたはpost_idが必要です" }] };
+    }
+
+    const fetched = await fetchXPost(derived.postId);
+    if (!fetched.ok) {
+      return { content: [{ type: "text", text: `取得失敗: ${fetched.error}` }] };
+    }
+
+    return { content: [{ type: "text", text: yaml.dump(fetched.data, { lineWidth: -1 }) }] };
   }
 );
 
