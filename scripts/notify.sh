@@ -17,6 +17,7 @@ set -euo pipefail
 BASEDIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOCKDIR="$BASEDIR/queue/.lock"
 STALE_SECONDS=30
+CLAUDE_BIN="$BASEDIR/scripts/claude-app.sh"
 
 # --- ペイン解決 ---
 resolve_pane() {
@@ -116,7 +117,7 @@ ensure_running() {
     sleep 0.3
     tmux send-keys -t "$pane" C-u
     sleep 0.3
-    tmux send-keys -t "$pane" "claude --model $model --dangerously-skip-permissions" Enter
+    tmux send-keys -t "$pane" "$CLAUDE_BIN --model $model --dangerously-skip-permissions" Enter
 
     # プロンプト待ち（最大45秒）
     local waited=0
