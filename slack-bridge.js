@@ -4,10 +4,11 @@
 /**
  * 薄氷図書室 Slack Bridge
  *
- * :tosyositsu: スタンプ → URLを摩耶花が即時処理
- * @薄氷図書室 メンション → 摩耶花が即時対応
- *   - URL付き → 記事を処理してObsidianに保存
- *   - 「〇〇 調べて」→ Obsidian検索
+ * Slack は図書室の主線入口ではない。
+ * 受け取った入力を `library.sh add` に流し込む補助アダプタとして扱う。
+ *
+ * :tosyositsu: スタンプ → URLを図書室カウンターに積む
+ * @薄氷図書室 メンション → URL投入またはナレッジ検索
  */
 
 const { App } = require("@slack/bolt");
@@ -30,6 +31,15 @@ const OBSIDIAN_FOLDERS = {
   activity_log: "部室/活動記録",
   library: "図書館/開架",
 };
+
+function isXUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return ["x.com", "www.x.com", "twitter.com", "www.twitter.com"].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
 
 // --- Slack App (Socket Mode) ---
 const app = new App({
@@ -106,75 +116,33 @@ function extractSearchQuery(text) {
     .trim();
 }
 
-// --- 摩耶花: URL単体を即時処理 ---
-function processUrl(url, note) {
+// --- 図書室の主線入口へ投入 ---
+function enqueueLibrary(url, note) {
   return new Promise((resolve) => {
-    const noteSection = note ? `\n投稿者メモ: ${note}` : "";
-    const prompt = `あなたは伊原摩耶花。薄氷図書館の図書委員。
+    if (isXUrl(url)) {
+      resolve([
+        `⚠ ${url}`,
+        "   X 投稿は Slack からは主線に乗せないわ。",
+        "   `./library.sh add <x-url> --excerpt \"抜粋本文\"` で図書室カウンターに入れて。",
+      ].join("\n"));
+      return;
+    }
 
-以下のURLを薄氷図書館に保存して。
-
-URL: ${url}${noteSection}
-
-## 手順
-1. WebFetchでURL内容を取得
-2. search_obsidian で重複確認（category: "library"）
-3. 以下の構造で要約:
-   ## ひとこと
-   > （投稿者メモがあれば引用。なければ省略）
-   ## 概要
-   （1-3文）
-   ## ポイント
-   - 箇条書き（3-7個）
-   ## 使い方・適用場面
-   - どういう時に役立つか
-   ## 出典
-   - [タイトル](URL)
-4. タグ付け（投稿者メモも参考に）:
-   - 技術系: TypeScript, React, Node.js, Python, Go, Rust 等
-   - 分野系: アーキテクチャ, セキュリティ, パフォーマンス, テスト, CI-CD 等
-   - 種別系: 公式ドキュメント, テックブログ, チュートリアル, リファレンス 等
-5. save_to_obsidian で保存（category: "library"）
-
-## 報告（この形式だけを出力して。余計な説明は不要）
-📚 「（タイトル）」
-   タグ: #○○ #○○ #○○
-   概要: （1文で何の記事か）
-   → 開架に入れたわよ。（記事への摩耶花らしいひとこと感想）
-
-重複していた場合:
-📚 「（タイトル）」→ もう登録済みよ。
-
-失敗した場合:
-❌ （URL）
-   理由: （失敗理由）`;
-
+    const args = ["add", url];
+    if (note) {
+      args.push("--note", note);
+    }
     execFile(
-      "/opt/homebrew/bin/claude",
-      [
-        "--model", "claude-haiku-4-5-20251001",
-        "--dangerously-skip-permissions",
-        "--max-turns", "10",
-        "-p", prompt,
-      ],
-      { cwd: __dirname, timeout: 180000, maxBuffer: 1024 * 1024, env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` } },
+      path.join(__dirname, "library.sh"),
+      args,
+      { cwd: __dirname, timeout: 30000, maxBuffer: 1024 * 1024, env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` } },
       (err, stdout) => {
         const output = stripAnsi(stdout || "").trim();
         if (err) {
-          if (
-            output.match(
-              /credit balance|rate limit|too many requests|overloaded/i
-            )
-          ) {
-            resolve(
-              "レート制限に引っかかったわ。少し時間を置いてからまた呼んで。"
-            );
-          } else {
-            console.error("processUrl failed:", err.message);
-            resolve(output || `❌ ${url}\n   理由: 処理中にエラーが出たわ。`);
-          }
+          console.error("enqueueLibrary failed:", err.message);
+          resolve(output || `❌ ${url}\n   理由: 図書室カウンターへの投入に失敗したわ。`);
         } else {
-          resolve(output || "処理完了よ。");
+          resolve(output || `✓ 図書室カウンターに追加: ${url}`);
         }
       }
     );
@@ -182,7 +150,7 @@ URL: ${url}${noteSection}
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Reaction handler: :tosyositsu: → 即時処理
+// Reaction handler: :tosyositsu: → 主線入口へ投入
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 app.event("reaction_added", async ({ event, client }) => {
   if (event.reaction !== TRIGGER_EMOJI) return;
@@ -214,12 +182,12 @@ app.event("reaction_added", async ({ event, client }) => {
     const note = extractNote(text, urls);
     await client.chat.postMessage({
       channel: CHANNEL_ID,
-      text: `${urls.length}件ね。整理するから待ってなさい。`,
+      text: `${urls.length}件ね。図書室カウンターに回すわ。`,
       thread_ts: event.item.ts,
     });
 
     for (const url of urls) {
-      const processed = await processUrl(url, note);
+      const processed = await enqueueLibrary(url, note);
       await client.chat.postMessage({
         channel: CHANNEL_ID,
         text: processed,
@@ -241,17 +209,17 @@ app.event("app_mention", async ({ event, client }) => {
   try {
     const urls = extractUrls(text);
 
-    // --- URL付き → 即時処理 ---
+    // --- URL付き → 主線入口へ投入 ---
     if (urls.length > 0) {
       const note = extractNote(text, urls);
       await client.chat.postMessage({
         channel: event.channel,
-        text: `${urls.length}件ね。整理するから待ってなさい。`,
+        text: `${urls.length}件ね。図書室カウンターに回すわ。`,
         thread_ts,
       });
 
       for (const url of urls) {
-        const result = await processUrl(url, note);
+        const result = await enqueueLibrary(url, note);
         await client.chat.postMessage({
           channel: event.channel,
           text: result,
@@ -300,9 +268,10 @@ app.event("app_mention", async ({ event, client }) => {
         text: [
           "何？用があるならちゃんと言いなさい。",
           "",
-          "• URL付き → 記事を読んで図書館に保存",
+          "• URL付き → 図書室カウンターに積む",
           '• 「〇〇 調べて」→ ナレッジ検索',
-          "• :tosyositsu: スタンプ → URL付きメッセージにスタンプで即保存",
+          "• :tosyositsu: スタンプ → URL付きメッセージをカウンターへ投入",
+          "• X 投稿は `library.sh add <x-url> --excerpt ...` が主線",
         ].join("\n"),
         thread_ts,
       });
@@ -326,4 +295,5 @@ app.event("app_mention", async ({ event, client }) => {
   console.log(`   チャンネル: ${CHANNEL_ID}`);
   console.log(`   トリガー絵文字: :${TRIGGER_EMOJI}:`);
   console.log("   メンション対応: 有効");
+  console.log("   役割: library.sh add への補助アダプタ");
 })();

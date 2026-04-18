@@ -17,6 +17,8 @@
 
 - `noticeboard` は軽いメモや思いつきの置き場です
 - 正式依頼の主線は `request.sh` から `clubroom` へ入ります
+- 図書室の主線は `library.sh add` から `library_queue.yaml` へ入ります
+- Slack などの外部入力を残す場合も、主線入口へ流し込む補助経路として扱います
 - 会話窓口として えるに背景を返すことはあっても、`noticeboard` 自体を依頼受付箱にはしません
 
 ## 最初に見る順番

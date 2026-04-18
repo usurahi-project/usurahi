@@ -5,8 +5,15 @@ set -euo pipefail
 # library.sh — 薄氷図書室 URL取り込み（摩耶花を呼び出す）
 #=============================================================================
 # Usage:
-#   ./library.sh           キューの未処理URLを摩耶花が処理する
-#   ./library.sh -l        キューの未処理URL一覧を表示する
+#   ./library.sh                   キューの未処理URLを摩耶花が処理する
+#   ./library.sh add <url>         URLを図書室カウンターへ追加する
+#   ./library.sh -l                キュー一覧を表示する
+#   ./library.sh --failed          失敗URL一覧を表示する
+#   ./library.sh retry --failed    失敗URLをまとめて再試行に戻す
+#   ./library.sh retry <url>       指定URLを再試行に戻す
+#   ./library.sh refetch --failed  失敗URLを再取得前提で戻す
+#   ./library.sh refetch <url>     指定URLを再取得前提で戻す
+#   ./library.sh rebuild <url>     保存済みノートを退避して作り直す
 #=============================================================================
 
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
@@ -61,32 +68,184 @@ check_prerequisites() {
         error "claude (Claude Code CLI) がインストールされていません"
         exit 1
     fi
+    if ! command -v node &>/dev/null; then
+        error "node がインストールされていません"
+        exit 1
+    fi
     if [[ ! -f "$QUEUE_FILE" ]]; then
         echo "urls: []" > "$QUEUE_FILE"
     fi
 }
 
-# --- 未処理件数カウント（grep方式・外部依存なし） ---
-count_pending() {
-    local c
-    c=$(grep -c 'status: pending' "$QUEUE_FILE" 2>/dev/null) || true
-    echo "${c:-0}"
+# --- 件数カウント ---
+count_items() {
+    local target_status="$1"
+    node --input-type=module - "$QUEUE_FILE" "$target_status" <<'NODE'
+import fs from "fs";
+import yaml from "js-yaml";
+
+const filePath = process.argv[2];
+const targetStatus = process.argv[3];
+if (!fs.existsSync(filePath)) {
+  console.log("0");
+  process.exit(0);
 }
 
-# --- キュー一覧表示 ---
-list_queue() {
+const data = yaml.load(fs.readFileSync(filePath, "utf8")) || {};
+const urls = Array.isArray(data.urls) ? data.urls : [];
+const count = urls.filter((item) => item.status === targetStatus).length;
+console.log(String(count));
+NODE
+}
+
+count_pending() {
+    count_items "pending"
+}
+
+count_failed() {
+    count_items "failed"
+}
+
+list_queue_by_status() {
+    local target_status="$1"
+    local heading="$2"
+    local empty_message="$3"
+
+    check_prerequisites
     local count
-    count=$(count_pending)
+    count=$(count_items "$target_status")
     if [[ "$count" == "0" ]]; then
-        maya "返却待ちの本はないわよ"
+        maya "$empty_message"
         return
     fi
     echo ""
-    gum style --foreground 213 --bold "  📋 返却待ち: ${count}件"
+    if command -v gum &>/dev/null; then
+        gum style --foreground 213 --bold "  📋 ${heading}: ${count}件"
+    else
+        echo "  📋 ${heading}: ${count}件"
+    fi
     echo ""
-    grep -B1 'status: pending' "$QUEUE_FILE" | grep 'url:' | sed 's/.*url: //' | while read -r url; do
-        gum style --foreground 240 "     $url"
+
+    list_queue_items "$target_status" | render_queue_items
+}
+
+list_queue() {
+    list_queue_by_status "pending" "処理待ち" "返却待ちの本はないわよ"
+}
+
+list_failed_queue() {
+    list_queue_by_status "failed" "失敗" "失敗中の本はないわよ"
+}
+
+list_queue_items() {
+    local target_status="$1"
+    node --input-type=module - "$QUEUE_FILE" "$target_status" <<'NODE'
+import fs from "fs";
+import yaml from "js-yaml";
+
+const filePath = process.argv[2];
+const targetStatus = process.argv[3];
+const data = yaml.load(fs.readFileSync(filePath, "utf8")) || {};
+const items = (Array.isArray(data.urls) ? data.urls : []).filter((item) => item.status === targetStatus);
+
+function suggestAction(item) {
+  if (item.status !== "failed") return "";
+
+  const stage = item.stage || "";
+  const message = String(item.error?.message || "").toLowerCase();
+
+  if (stage === "fetch") return "refetch";
+  if (message.includes("取得") || message.includes("could not resolve") || message.includes("timed out") || message.includes("http ")) {
+    return "refetch";
+  }
+  if (stage === "normalize" || stage === "summarize" || stage === "save") {
+    return "retry";
+  }
+  return "retry";
+}
+
+for (const item of items) {
+  const summary = [
+    item.source_type ? `[${item.source_type}]` : "[link]",
+    item.author ? `@${item.author}` : "",
+    item.intent ? `(${item.intent})` : "",
+    item.excerpt ? "[excerpt]" : "",
+  ].filter(Boolean).join(" ");
+  const extra = item.status === "failed"
+    ? `${item.stage || "unknown"} / ${item.error?.message || "unknown error"} / suggest:${suggestAction(item)}`
+    : `${item.fetch_status || "not-fetched"}`;
+  console.log(`${item.url}\t${summary}\t${extra}`);
+}
+NODE
+}
+
+render_queue_items() {
+    while IFS=$'\t' read -r url summary extra; do
+        [[ -z "${url:-}" ]] && continue
+        if command -v gum &>/dev/null; then
+            gum style --foreground 240 "     $url"
+            gum style --foreground 245 "       ${summary:-[link]} / ${extra}"
+        else
+            echo "     $url"
+            echo "       ${summary:-[link]} / ${extra}"
+        fi
     done
+}
+
+add_to_queue() {
+    check_prerequisites
+    if [[ $# -lt 1 ]]; then
+        error "URLを指定してください"
+        exit 1
+    fi
+
+    local result
+    result=$(cd "$BASEDIR" && node scripts/library-add.mjs "$@")
+    echo ""
+    echo "$result"
+    echo ""
+}
+
+retry_queue_item() {
+    check_prerequisites
+    if [[ $# -lt 1 ]]; then
+        error "retry には <url> または --failed を指定してください"
+        exit 1
+    fi
+
+    local result
+    result=$(cd "$BASEDIR" && node scripts/library-retry.mjs "$@")
+    echo ""
+    echo "$result"
+    echo ""
+}
+
+refetch_queue_item() {
+    check_prerequisites
+    if [[ $# -lt 1 ]]; then
+        error "refetch には <url> または --failed を指定してください"
+        exit 1
+    fi
+
+    local result
+    result=$(cd "$BASEDIR" && node scripts/library-refetch.mjs "$@")
+    echo ""
+    echo "$result"
+    echo ""
+}
+
+rebuild_queue_item() {
+    check_prerequisites
+    if [[ $# -lt 1 ]]; then
+        error "rebuild には <url> を指定してください"
+        exit 1
+    fi
+
+    local result
+    result=$(cd "$BASEDIR" && node scripts/library-rebuild.mjs "$@")
+    echo ""
+    echo "$result"
+    echo ""
 }
 
 # --- 部会稼働チェック ---
@@ -97,7 +256,7 @@ check_bukatsu_active() {
     return 1  # 停止中
 }
 
-# --- 摩耶花起動（リトライ付き） ---
+# --- 図書室処理 ---
 run_mayaka() {
     check_prerequisites
 
@@ -125,103 +284,9 @@ run_mayaka() {
 
     maya "${pending_count}件ね。ちゃんと整理するから待ってなさい"
     echo ""
-
-    # リトライループ（最大3回）
-    local max_retries=3
-    local attempt=1
     local result
-
-    while [[ $attempt -le $max_retries ]]; do
-        # 摩耶花を非対話モードで起動（Haiku: 軽量＆低コスト）
-        result=$(cd "$BASEDIR" && claude --model claude-haiku-4-5-20251001 \
-            --dangerously-skip-permissions \
-            --max-turns 15 \
-            -p "$(cat <<'PROMPT'
-あなたは伊原摩耶花。薄氷図書館の図書委員。
-
-## タスク
-MCPツール `get_library_queue` で未処理（pending）のURLを取得し、各URLを以下の手順で処理してください。
-
-## 各URLの処理手順
-1. WebFetchツールでURLの内容を取得する
-2. `search_obsidian` で既に同じ内容が登録されていないか確認する（category: "library"）
-3. キューの `note` フィールドに投稿者のひとことがある場合、タグ選定のヒントにする
-4. 以下の構造で要約する:
-   ```
-   ## ひとこと
-   > （noteがあればここに引用。なければこのセクション省略）
-
-   ## 概要
-   （1-3文で何の記事/ドキュメントか）
-
-   ## ポイント
-   - 重要なポイントを箇条書き（3-7個）
-
-   ## 使い方・適用場面
-   - どういう時に役立つか
-
-   ## 出典
-   - [タイトル](URL)
-   ```
-5. 適切なタグを付ける（ひとことメモも参考にする）:
-   - 技術系: TypeScript, React, Node.js, Python, Go, Rust 等
-   - 分野系: アーキテクチャ, セキュリティ, パフォーマンス, テスト, CI-CD 等
-   - 種別系: 公式ドキュメント, テックブログ, チュートリアル, リファレンス 等
-5. `save_to_obsidian` で保存（category: "library"）
-6. `update_library_queue` でURLのstatusを "done" にする
-7. 次のURLへ
-
-## 各URL処理後の報告（1件ごとに出力）
-以下のフォーマットで報告する:
-
-```
-📚 「（タイトル）」
-   タグ: #○○ #○○ #○○
-   概要: （1文で何の記事か）
-   関連: （関連ノートがあれば。なければ省略）
-   → 開架に入れたわよ。（記事の内容に対する摩耶花らしいひとこと感想）
-```
-
-「→」の行には、保存完了の報告に加えて記事を読んだ感想を一言添える。
-感想は摩耶花の口調で、記事の具体的な中身に触れること。褒め・ツッコミ・実用性への言及など自由に。
-例:
-- 「→ 開架に入れたわよ。設計思想がしっかりしてて、UIライブラリの手本みたいな記事ね。」
-- 「→ 開架に入れたわよ。Hooksの使い方が独特で面白いけど、初心者には向かないわね。」
-- 「→ 開架に入れたわよ。これ地味に実務で使えるやつ。覚えておきなさい。」
-
-失敗した場合:
-```
-❌ （URL）
-   理由: （失敗理由）
-```
-
-## 全URL処理後
-処理件数のまとめと一言。口調は摩耶花らしく。
-例: 「3件整理したわよ。ちゃんとタグ付けしておいたから、後で検索できるわ。」
-PROMPT
-)" 2>&1) || true
-
-        # レート制限チェック
-        if echo "$result" | grep -qi 'credit balance\|rate limit\|too many requests\|overloaded'; then
-            if [[ $attempt -lt $max_retries ]]; then
-                local wait_sec=$(( attempt * 30 ))
-                maya "混んでるわね...${wait_sec}秒待つわよ（${attempt}/${max_retries}回目）"
-                sleep "$wait_sec"
-                attempt=$(( attempt + 1 ))
-                continue
-            else
-                echo "$result"
-                echo ""
-                maya "何回やってもダメ。部室が落ち着いてからにして"
-                echo ""
-                exit 1
-            fi
-        fi
-
-        # 成功
-        echo "$result"
-        break
-    done
+    result=$(cd "$BASEDIR" && node scripts/library-run.mjs 2>&1) || true
+    echo "$result"
 
     echo ""
     line
@@ -230,17 +295,44 @@ PROMPT
 
 # --- メイン ---
 main() {
-    check_prerequisites
-
     case "${1:-}" in
+        add)
+            shift
+            add_to_queue "$@"
+            ;;
         -l|--list)
             list_queue
             ;;
+        --failed)
+            list_failed_queue
+            ;;
+        retry)
+            shift
+            retry_queue_item "$@"
+            ;;
+        refetch)
+            shift
+            refetch_queue_item "$@"
+            ;;
+        rebuild)
+            shift
+            rebuild_queue_item "$@"
+            ;;
         -h|--help)
             echo "Usage: $0 [options]"
-            echo "  (なし)    摩耶花を起動してキューを処理する"
-            echo "  -l        未処理URL一覧を表示する"
-            echo "  -h        ヘルプを表示する"
+            echo "  (なし)                 摩耶花を起動してキューを処理する"
+            echo "  add <url> [options]    URLを図書室カウンターへ追加する"
+            echo "    --note <text>        ひとことメモ"
+            echo "    --intent <value>     interesting / try-soon / keep-for-later"
+            echo "    --excerpt <text>     抜粋本文（Xはこれを推奨）"
+            echo "  -l, --list             処理待ちURL一覧を表示する"
+            echo "  --failed               失敗URL一覧を表示する"
+            echo "  retry --failed         失敗URLをまとめて再試行に戻す"
+            echo "  retry <url>            指定URLを再試行に戻す"
+            echo "  refetch --failed       失敗URLを再取得前提で戻す"
+            echo "  refetch <url>          指定URLを再取得前提で戻す"
+            echo "  rebuild <url>          保存済みノートを退避して作り直す"
+            echo "  -h, --help             ヘルプを表示する"
             ;;
         *)
             run_mayaka

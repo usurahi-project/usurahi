@@ -115,8 +115,13 @@ tmux attach -t clubroom
 ./request.sh "依頼本文"
 ./request.sh -l
 ./scripts/notify.sh <送信先> "<メッセージ>"
+./library.sh add <url> --note "ひとこと"
+./library.sh add <x-url> --excerpt "抜粋本文"
 ./library.sh
 ./library.sh -l
+./library.sh --failed
+./library.sh retry --failed
+./library.sh refetch --failed
 tmux attach -t noticeboard
 tmux attach -t clubroom
 ```
@@ -137,6 +142,33 @@ tmux attach -t clubroom
 
 ## 図書室を使う
 
+### カウンターへ入れる
+
+```bash
+./library.sh add <url>
+```
+
+ひとことメモや保存意図も付けられる。
+
+```bash
+./library.sh add "https://zenn.dev/example/articles/abc" \
+  --note "設計の参考" \
+  --intent keep-for-later
+```
+
+Zenn / Qiita / 公式 docs はこの形でそのまま図書室カウンターに入れる。
+
+X 投稿 URL は、非課金で回すなら `excerpt` を一緒に入れる。
+
+```bash
+./library.sh add "https://x.com/SuguruKun_ai/status/2036449312939630908" \
+  --excerpt "Claude Code のスキル、調べてみたら GitHub に6万個以上ある..." \
+  --note "スキル設計の参考" \
+  --intent interesting
+```
+
+`X_BEARER_TOKEN` がある場合だけ、`excerpt` なしでも追加時に本文取得を試みる。
+
 ### URLキューを処理する
 
 ```bash
@@ -148,6 +180,64 @@ tmux attach -t clubroom
 ```bash
 ./library.sh -l
 ```
+
+### 失敗URLを確認する
+
+```bash
+./library.sh --failed
+```
+
+失敗一覧には `suggest:retry` または `suggest:refetch` が出る。
+通常はその提案に従えばよい。
+
+### 失敗を再試行に戻す
+
+```bash
+./library.sh retry --failed
+./library.sh retry <url>
+```
+
+`retry` は取得済み本文を残したまま、要約と保存のやり直しに戻す。
+
+### 材料から取り直す
+
+```bash
+./library.sh refetch --failed
+./library.sh refetch <url>
+```
+
+`refetch` は取得済み本文も捨てて、外部ソースから取り直す前提で戻す。
+ページ更新や取得不良の時だけ使う。
+
+`./library.sh` の実行結果で失敗が出た場合も、末尾に `suggest:retry` または `suggest:refetch` が出る。
+
+## 認証の前提
+
+薄氷の内部起動は `scripts/claude-app.sh` を通す。
+このラッパーは `ANTHROPIC_API_KEY` を無効化し、Claude App の Pro / Max 認証を優先するためのもの。
+
+つまり、部員起動と図書室処理は API key 課金ではなく、Claude App 側で回す前提にそろえている。
+
+## 図書室ノートの形
+
+摩耶花の出力は感想ではなく、次に使える整理を優先する。
+
+- `summary`
+  - 何が書いてあるかを短くまとめる
+- `tags`
+  - 概念の精度を優先する
+  - 固有名詞や定着語は英語のまま許す
+  - 一般語は保存前に正規化辞書で寄せる
+- `save_value`
+  - なぜ残すかを 1 文で書く
+- `use_case`
+  - 「薄氷でどう使うか」を 1 文で書く
+- `related_topics`
+  - 周辺論点を 2-4 個で並べる
+- `next_read`
+  - 次に見に行く対象を 1-3 個で置く
+
+X 由来の `excerpt` は長く残しすぎず、短い抜粋に圧縮して保存する。
 
 ## 基本導線
 
@@ -164,3 +254,17 @@ tmux attach -t clubroom
 
 正式依頼の入口は `request.sh` である。
 えるへの自然文は世界観のために残しつつ、入口の状態遷移は薄い CLI で安定させる。
+
+図書室は `counter` として振る舞う。
+まず `./library.sh add ...` でカウンターへ置き、摩耶花が `./library.sh` で整理する。
+特に X は `URLだけ` より `URL + excerpt` の方が運用が安定する。
+失敗したものは `./library.sh --failed` で見て、通常は `retry` で pending に戻してから再処理する。
+本文自体を取り直したい時だけ `refetch` を使う。
+
+補足:
+
+- 図書室の進行骨格は `library.sh` が握る
+- 摩耶花はタイトル・要約・タグ・保存価値・使いどころ・関連導線を返す整理役として振る舞う
+- 保存や status 更新はスクリプト側で行う
+- Zenn / Qiita / 公式 docs は摩耶花が直接読む対象
+- X は人間が `excerpt` を添えてから摩耶花へ渡す
