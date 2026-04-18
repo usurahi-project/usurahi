@@ -2,20 +2,20 @@
 set -euo pipefail
 
 #=============================================================================
-# kaigi.sh — 薄氷（うすらひ）起動スクリプト
+# meeting.sh — 薄氷（うすらひ）起動スクリプト
 #=============================================================================
 # Usage:
-#   ./kaigi.sh          通常起動（える＋ハルヒのみ）
-#   ./kaigi.sh -w       部員召集（折木・キョン・長門を起動）
-#   ./kaigi.sh -a       全員起動（える＋ハルヒ＋部員3名を一括起動）
-#   ./kaigi.sh -s       セットアップのみ（tmuxセッション作成、Claude起動なし）
-#   ./kaigi.sh -c       クリーン起動（キューをリセットしてから起動）
-#   ./kaigi.sh -k       終了（tmuxセッションを閉じる）
+#   ./meeting.sh          通常起動（える＋ハルヒのみ）
+#   ./meeting.sh -w       部員召集（折木・キョン・長門を起動）
+#   ./meeting.sh -a       全員起動（える＋ハルヒ＋部員3名を一括起動）
+#   ./meeting.sh -s       セットアップのみ（tmuxセッション作成、Claude起動なし）
+#   ./meeting.sh -c       クリーン起動（キューをリセットしてから起動）
+#   ./meeting.sh -k       終了（tmuxセッションを閉じる）
 #=============================================================================
 
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
-KEIJIBAN_SESSION="keijiban"
-BUSHITSU_SESSION="bushitsu"
+NOTICEBOARD_SESSION="noticeboard"
+CLUBROOM_SESSION="clubroom"
 
 # --- 表示ヘルパー ---
 dim()    { gum style --foreground 240 "  $1"; }
@@ -81,7 +81,7 @@ check_prerequisites() {
 reset_queues() {
     dim "キューをリセットしています..."
 
-    cat > "$BASEDIR/queue/keijiban.yaml" << 'YAML'
+    cat > "$BASEDIR/queue/noticeboard.yaml" << 'YAML'
 posts: []
 YAML
 
@@ -106,12 +106,12 @@ YAML
     rm -f "$BASEDIR/queue/reports/koizumi_report.yaml"
 
     # 図書館キュー初期化
-    cat > "$BASEDIR/queue/toshoshitsu_queue.yaml" << 'YAML'
+    cat > "$BASEDIR/queue/library_queue.yaml" << 'YAML'
 urls: []
 YAML
 
     # 黒板初期化
-    cat > "$BASEDIR/kokuban.md" << 'MD'
+    cat > "$BASEDIR/blackboard.md" << 'MD'
 # 黒板
 最終更新: ---
 
@@ -155,8 +155,8 @@ MD
 # --- 既存セッション終了 ---
 kill_sessions() {
     dim "既存セッションを終了しています..."
-    tmux kill-session -t "$KEIJIBAN_SESSION" 2>/dev/null && dim "  $KEIJIBAN_SESSION 終了" || true
-    tmux kill-session -t "$BUSHITSU_SESSION" 2>/dev/null && dim "  $BUSHITSU_SESSION 終了" || true
+    tmux kill-session -t "$NOTICEBOARD_SESSION" 2>/dev/null && dim "  $NOTICEBOARD_SESSION 終了" || true
+    tmux kill-session -t "$CLUBROOM_SESSION" 2>/dev/null && dim "  $CLUBROOM_SESSION 終了" || true
 }
 
 # --- tmuxセッション作成 ---
@@ -166,43 +166,62 @@ setup_sessions() {
 
     dim "tmuxセッションを作成しています..."
 
-    # --- keijiban セッション（える用・掲示板の窓口） ---
-    tmux new-session -d -s "$KEIJIBAN_SESSION" -c "$BASEDIR" -x 200 -y 50
-    tmux set-option -t "$KEIJIBAN_SESSION" pane-border-format " える（副部長・連絡役） "
-    tmux set-option -t "$KEIJIBAN_SESSION" pane-border-status top
-    dim "  keijiban セッション作成（える）"
+    # --- noticeboard セッション（える用・掲示板の窓口） ---
+    tmux new-session -d -s "$NOTICEBOARD_SESSION" -c "$BASEDIR" -x 200 -y 50
+    tmux set-option -t "$NOTICEBOARD_SESSION" allow-rename off
+    tmux set-option -t "$NOTICEBOARD_SESSION" automatic-rename off
+    tmux set-option -t "$NOTICEBOARD_SESSION" pane-border-format " #{pane_title} "
+    tmux set-option -t "$NOTICEBOARD_SESSION" pane-border-status top
+    tmux rename-window -t "$NOTICEBOARD_SESSION:0" "える"
+    tmux select-pane -t "${NOTICEBOARD_SESSION}.0" -T "える"
+    dim "  noticeboard セッション作成（える）"
 
-    # --- bushitsu セッション（ハルヒ + 部員3名 = 4ペイン） ---
+    # --- clubroom セッション（3列 x 2段 = 6ペイン） ---
     # base-index を 0 に固定してペイン番号の安定性を保証
-    tmux new-session -d -s "$BUSHITSU_SESSION" -c "$BASEDIR" -x 200 -y 50
-    tmux set-option -t "$BUSHITSU_SESSION" pane-base-index 0
+    tmux new-session -d -s "$CLUBROOM_SESSION" -c "$BASEDIR" -x 200 -y 50
+    tmux set-option -t "$CLUBROOM_SESSION" allow-rename off
+    tmux set-option -t "$CLUBROOM_SESSION" automatic-rename off
+    tmux set-option -t "$CLUBROOM_SESSION" pane-base-index 0
+    tmux rename-window -t "$CLUBROOM_SESSION:0" "部室"
 
-    # ペイン分割: 4ペイン構成
-    # 注意: split-window 後のインデックスは環境依存のため、
-    #       下部のペインマッピングログで実際の割り当てを確認すること。
-    #       ズレがあれば renraku.sh の resolve_pane を修正する。
-    tmux split-window -t "${BUSHITSU_SESSION}" -h -c "$BASEDIR"
-    tmux split-window -t "${BUSHITSU_SESSION}" -v -c "$BASEDIR"
-    tmux split-window -t "${BUSHITSU_SESSION}" -v -c "$BASEDIR"
+    # まず3列を横に作る
+    tmux split-window -t "${CLUBROOM_SESSION}.0" -h -c "$BASEDIR"
+    tmux split-window -t "${CLUBROOM_SESSION}.1" -h -c "$BASEDIR"
+    tmux select-layout -t "$CLUBROOM_SESSION" even-horizontal
 
-    # ペインタイトル設定（renraku.sh のペイン番号と一致させる）
-    tmux select-pane -t "${BUSHITSU_SESSION}.0" -T "ハルヒ（部長）"
-    tmux select-pane -t "${BUSHITSU_SESSION}.1" -T "折木（部員）"
-    tmux select-pane -t "${BUSHITSU_SESSION}.2" -T "キョン（部員）"
-    tmux select-pane -t "${BUSHITSU_SESSION}.3" -T "長門（部員）"
+    # 各列を上下に割って 3列 x 2段 を作る
+    # index ずれを避けるため、右→中→左の順で割る
+    tmux split-window -t "${CLUBROOM_SESSION}.2" -v -c "$BASEDIR"
+    tmux split-window -t "${CLUBROOM_SESSION}.1" -v -c "$BASEDIR"
+    tmux split-window -t "${CLUBROOM_SESSION}.0" -v -c "$BASEDIR"
+
+    # ペインタイトル設定
+    tmux select-pane -t "${CLUBROOM_SESSION}.0" -T "ハルヒ"
+    tmux select-pane -t "${CLUBROOM_SESSION}.1" -T "折木"
+    tmux select-pane -t "${CLUBROOM_SESSION}.2" -T "黒板"
+    tmux select-pane -t "${CLUBROOM_SESSION}.3" -T "キョン"
+    tmux select-pane -t "${CLUBROOM_SESSION}.4" -T "える"
+    tmux select-pane -t "${CLUBROOM_SESSION}.5" -T "長門"
 
     # ペインボーダーにタイトル表示
-    tmux set-option -t "$BUSHITSU_SESSION" pane-border-format " #{pane_title} "
-    tmux set-option -t "$BUSHITSU_SESSION" pane-border-status top
+    tmux set-option -t "$CLUBROOM_SESSION" pane-border-format " #{pane_title} "
+    tmux set-option -t "$CLUBROOM_SESSION" pane-border-status top
 
-    # レイアウト調整
-    tmux select-layout -t "$BUSHITSU_SESSION" tiled
+    # 黒板ペインは blackboard.md を定期表示する
+    tmux send-keys -t "${CLUBROOM_SESSION}.2" C-c
+    tmux send-keys -t "${CLUBROOM_SESSION}.2" C-u
+    tmux send-keys -t "${CLUBROOM_SESSION}.2" "while true; do clear; cat '$BASEDIR/blackboard.md'; sleep 2; done" Enter
+
+    # える表示ペインは noticeboard の様子を定期表示する
+    tmux send-keys -t "${CLUBROOM_SESSION}.4" C-c
+    tmux send-keys -t "${CLUBROOM_SESSION}.4" C-u
+    tmux send-keys -t "${CLUBROOM_SESSION}.4" "while true; do clear; tmux capture-pane -pt '${NOTICEBOARD_SESSION}.0'; sleep 2; done" Enter
 
     # ペインマッピングを検証して記録
-    dim "  bushitsu ペインマッピング:"
-    for i in 0 1 2 3; do
+    dim "  clubroom ペインマッピング:"
+    for i in 0 1 2 3 4 5; do
         local title
-        title=$(tmux display-message -t "${BUSHITSU_SESSION}.${i}" -p '#{pane_title}' 2>/dev/null || echo "???")
+        title=$(tmux display-message -t "${CLUBROOM_SESSION}.${i}" -p '#{pane_title}' 2>/dev/null || echo "???")
         dim "    pane $i → $title"
     done
 }
@@ -269,14 +288,14 @@ launch_claude() {
         ok "${name}"
     }
 
-    # える（Opus）— keijiban セッション
-    launch_agent "${KEIJIBAN_SESSION}.0" "claude-opus-4-6" \
+    # える（Opus）— noticeboard セッション
+    launch_agent "${NOTICEBOARD_SESSION}.0" "claude-opus-4-6" \
         "$BASEDIR/instructions/eru_boot.txt" "える"
 
     sleep 5  # Opus→Opus: レート制限対策で長めに
 
-    # ハルヒ（Opus）— bushitsu pane 0
-    launch_agent "${BUSHITSU_SESSION}.0" "claude-opus-4-6" \
+    # ハルヒ（Opus）— clubroom pane 0
+    launch_agent "${CLUBROOM_SESSION}.0" "claude-opus-4-6" \
         "$BASEDIR/instructions/haruhi_boot.txt" "ハルヒ"
 
     echo ""
@@ -284,9 +303,9 @@ launch_claude() {
     echo ""
     gum style --foreground 255 "  える＋ハルヒが部室に来ました"
     echo ""
-    gum style --foreground 240 "  えるに話す  $(gum style --foreground 123 'tmux attach -t keijiban')"
-    gum style --foreground 240 "  部室を覗く  $(gum style --foreground 123 'tmux attach -t bushitsu')"
-    gum style --foreground 240 "  部員を呼ぶ  $(gum style --foreground 123 '~/usurahi/kaigi.sh -w')"
+    gum style --foreground 240 "  えるに話す  $(gum style --foreground 123 'tmux attach -t noticeboard')"
+    gum style --foreground 240 "  部室を覗く  $(gum style --foreground 123 'tmux attach -t clubroom')"
+    gum style --foreground 240 "  部員を呼ぶ  $(gum style --foreground 123 '~/usurahi/meeting.sh -w')"
     echo ""
 }
 
@@ -296,9 +315,9 @@ launch_workers() {
 
     local common_flags="--dangerously-skip-permissions"
 
-    # bushitsu セッションが存在するか確認
-    if ! tmux has-session -t "$BUSHITSU_SESSION" 2>/dev/null; then
-        error "bushitsu セッションがありません。先に kaigi.sh を実行してください"
+    # clubroom セッションが存在するか確認
+    if ! tmux has-session -t "$CLUBROOM_SESSION" 2>/dev/null; then
+        error "clubroom セッションがありません。先に meeting.sh を実行してください"
         exit 1
     fi
 
@@ -358,22 +377,22 @@ launch_workers() {
         ok "${name}"
     }
 
-    # 折木（Sonnet）— bushitsu pane 1
-    launch_agent "${BUSHITSU_SESSION}.1" "claude-sonnet-4-5-20250929" \
+    # 折木（Sonnet）— clubroom pane 1
+    launch_agent "${CLUBROOM_SESSION}.1" "claude-sonnet-4-5-20250929" \
         "$BASEDIR/instructions/oreki_boot.txt" "折木"
 
     sleep 3
 
-    # キョン（Sonnet）— bushitsu pane 2
-    launch_agent "${BUSHITSU_SESSION}.2" "claude-sonnet-4-5-20250929" \
+    # キョン（Sonnet）— clubroom pane 3
+    launch_agent "${CLUBROOM_SESSION}.3" "claude-sonnet-4-5-20250929" \
         "$BASEDIR/instructions/kyon_boot.txt" "キョン"
 
     sleep 3
 
     sleep 5  # Sonnet→Opus
 
-    # 長門（Opus）— bushitsu pane 3
-    launch_agent "${BUSHITSU_SESSION}.3" "claude-opus-4-6" \
+    # 長門（Opus）— clubroom pane 5
+    launch_agent "${CLUBROOM_SESSION}.5" "claude-opus-4-6" \
         "$BASEDIR/instructions/nagato_boot.txt" "長門"
 
     echo ""

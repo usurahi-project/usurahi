@@ -2,15 +2,15 @@
 set -euo pipefail
 
 #=============================================================================
-# toshoshitsu.sh — 薄氷図書室 URL取り込み（摩耶花を呼び出す）
+# library.sh — 薄氷図書室 URL取り込み（摩耶花を呼び出す）
 #=============================================================================
 # Usage:
-#   ./toshoshitsu.sh           キューの未処理URLを摩耶花が処理する
-#   ./toshoshitsu.sh -l        キューの未処理URL一覧を表示する
+#   ./library.sh           キューの未処理URLを摩耶花が処理する
+#   ./library.sh -l        キューの未処理URL一覧を表示する
 #=============================================================================
 
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
-QUEUE_FILE="$BASEDIR/queue/toshoshitsu_queue.yaml"
+QUEUE_FILE="$BASEDIR/queue/library_queue.yaml"
 
 # PATH にhomebrewを追加（launchd経由対応）
 export PATH="/opt/homebrew/bin:$PATH"
@@ -91,7 +91,7 @@ list_queue() {
 
 # --- 部会稼働チェック ---
 check_bukatsu_active() {
-    if tmux has-session -t keijiban 2>/dev/null || tmux has-session -t bushitsu 2>/dev/null; then
+    if tmux has-session -t noticeboard 2>/dev/null || tmux has-session -t clubroom 2>/dev/null; then
         return 0  # 稼働中
     fi
     return 1  # 停止中
@@ -140,7 +140,7 @@ run_mayaka() {
 あなたは伊原摩耶花。薄氷図書館の図書委員。
 
 ## タスク
-MCPツール `get_toshoshitsu_queue` で未処理（pending）のURLを取得し、各URLを以下の手順で処理してください。
+MCPツール `get_library_queue` で未処理（pending）のURLを取得し、各URLを以下の手順で処理してください。
 
 ## 各URLの処理手順
 1. WebFetchツールでURLの内容を取得する
@@ -168,7 +168,7 @@ MCPツール `get_toshoshitsu_queue` で未処理（pending）のURLを取得し
    - 分野系: アーキテクチャ, セキュリティ, パフォーマンス, テスト, CI-CD 等
    - 種別系: 公式ドキュメント, テックブログ, チュートリアル, リファレンス 等
 5. `save_to_obsidian` で保存（category: "library"）
-6. `update_toshoshitsu_queue` でURLのstatusを "done" にする
+6. `update_library_queue` でURLのstatusを "done" にする
 7. 次のURLへ
 
 ## 各URL処理後の報告（1件ごとに出力）

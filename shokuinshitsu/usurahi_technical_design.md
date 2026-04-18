@@ -21,10 +21,10 @@
 2. えるが依頼を受け、背景を確認する
 3. `create_meeting` で `gijiroku.yaml` に会議状態を作る
 4. 会議中は `update_meeting` で内部状態を更新する
-5. `meeting.blackboard` から `kokuban.md` を自動反映する
+5. `meeting.blackboard` から `blackboard.md` を自動反映する
 6. 提出時は `respond_room_request` で正式依頼を閉じる
 7. 同時に活動記録を自動保存する
-8. 条件が揃った時だけ `create_backnumber` でバックナンバー化する
+8. 条件が揃った時だけ `create_archive_entry` でバックナンバー化する
 
 ## 進行原則
 
@@ -57,15 +57,15 @@
   正式依頼の入口
 - `queue/gijiroku.yaml`
   会議の内部状態
-- `kokuban.md`
+- `blackboard.md`
   人間向けの現在値
 - `queue/tasks/*.yaml`
   部員ごとの担当タスク
 - `queue/reports/*_report.yaml`
   部員ごとの作業報告
-- `nisshi/`
+- `activity-log/`
   活動記録
-- `backnumber/`
+- `archive/`
   再利用パターン
 
 ## 会議状態
@@ -130,7 +130,7 @@
 
 出力先:
 
-- `nisshi/`
+- `activity-log/`
 - `薄氷/部室/活動記録/`
 
 ## バックナンバー

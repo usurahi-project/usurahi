@@ -37,7 +37,7 @@ SOS団と古典部の合同部活として、依頼を「今の部としての�
 ## 起動時
 
 1. `instructions/<自分の名前>.md` を読む
-2. `kokuban.md` を確認する
+2. `blackboard.md` を確認する
 3. 必要なら MCP で会議状態や依頼を確認する
 4. 詳細手順は `.claude/rules/` を参照する
 

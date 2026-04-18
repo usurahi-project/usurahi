@@ -19,7 +19,7 @@
 ### 1. 部活を起動する
 
 ```bash
-./kaigi.sh -c
+./meeting.sh -c
 ```
 
 これは、状態を初期化してから部活を起動する一番わかりやすい始め方です。
@@ -42,7 +42,7 @@
 ### 3. えるに話しかける
 
 ```bash
-tmux attach -t keijiban
+tmux attach -t noticeboard
 ```
 
 ここで、えるの受け答えを見たり、必要なら背景を補足したりします。
@@ -57,37 +57,45 @@ sample-project の TODO CLI を改善したいです。
 ### 4. 部室を見る
 
 ```bash
-tmux attach -t bushitsu
+tmux attach -t clubroom
 ```
 
-部員たちのやり取りや、黒板の現在値を見られます。
+部員たちのやり取りと、黒板の現在値を見られます。
+現在の `clubroom` は 6 pane 構成です。
+
+- ハルヒ
+- 折木
+- 黒板
+- キョン
+- える（部室表示）
+- 長門
 
 ### 5. 必要なら途中で口を挟む
 
 ```bash
-./scripts/renraku.sh kyon "その運用リスクは気になる"
+./scripts/notify.sh kyon "その運用リスクは気になる"
 ```
 
 ## よく使うコマンド
 
 ```bash
-./kaigi.sh -c   # 初期化して起動
-./kaigi.sh -a   # 最初から全員起動
-./kaigi.sh -w   # 後から部員を呼ぶ
-./kaigi.sh -k   # 終了
+./meeting.sh -c   # 初期化して起動
+./meeting.sh -a   # 最初から全員起動
+./meeting.sh -w   # 後から部員を呼ぶ
+./meeting.sh -k   # 終了
 ./request.sh "依頼本文"  # 正式依頼入口
 ./request.sh -l          # 正式依頼一覧
-./toshoshitsu.sh    # 図書室の未処理URLを処理
-./toshoshitsu.sh -l # 図書室キュー一覧
+./library.sh    # 図書室の未処理URLを処理
+./library.sh -l # 図書室キュー一覧
 ```
 
 ## 情報はどこに残るか
 
-- 進行中の議論: `kokuban.md`
+- 進行中の議論: `blackboard.md`
 - 会議の内部状態: `queue/gijiroku.yaml`
 - 正式依頼: `queue/room_requests.yaml`
-- 活動記録: `nisshi/` と Obsidian の `薄氷/部室/活動記録/`
-- バックナンバー: `backnumber/` と Obsidian の `薄氷/図書館/薄氷バックナンバー/`
+- 活動記録: `activity-log/` と Obsidian の `薄氷/部室/活動記録/`
+- バックナンバー: `archive/` と Obsidian の `薄氷/図書館/薄氷バックナンバー/`
 
 ## 文書案内
 

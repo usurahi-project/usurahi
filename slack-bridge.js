@@ -26,8 +26,8 @@ const OBSIDIAN_USURAHI = path.join(
   "薄氷"
 );
 const OBSIDIAN_FOLDERS = {
-  backnumber: "図書館/薄氷バックナンバー",
-  nisshi: "部室/活動記録",
+  archive: "図書館/薄氷バックナンバー",
+  activity_log: "部室/活動記録",
   library: "図書館/開架",
 };
 

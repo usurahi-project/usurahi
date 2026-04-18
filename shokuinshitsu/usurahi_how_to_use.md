@@ -22,19 +22,30 @@
 ### 部活を起動する
 
 ```bash
-./kaigi.sh
+./meeting.sh
 ```
 
 起きること:
 
 - えるとハルヒが起動する
-- `keijiban` セッションがえる用に立ち上がる
-- `bushitsu` セッションが部室として立ち上がる
+- `noticeboard` セッションがえる用に立ち上がる
+- `clubroom` セッションが部室として立ち上がる
+- `clubroom` には上段にハルヒ・黒板・える表示、下段に折木・キョン・長門の 6 pane が並ぶ
+
+今の tmux 構成:
+
+- `noticeboard.0`: える
+- `clubroom.0`: ハルヒ
+- `clubroom.1`: 折木
+- `clubroom.2`: 黒板
+- `clubroom.3`: キョン
+- `clubroom.4`: える（部室表示）
+- `clubroom.5`: 長門
 
 ### まっさらな状態から始める
 
 ```bash
-./kaigi.sh -c
+./meeting.sh -c
 ```
 
 起きること:
@@ -46,19 +57,19 @@
 ### 最初から全員呼ぶ
 
 ```bash
-./kaigi.sh -a
+./meeting.sh -a
 ```
 
 ### 途中で部員を呼ぶ
 
 ```bash
-./kaigi.sh -w
+./meeting.sh -w
 ```
 
 ### 下校する
 
 ```bash
-./kaigi.sh -k
+./meeting.sh -k
 ```
 
 ## どこに入るか
@@ -78,7 +89,7 @@
 ### えるに話しかける
 
 ```bash
-tmux attach -t keijiban
+tmux attach -t noticeboard
 ```
 
 ここでは、えるの受け答えを見たり、背景を補足したりする。
@@ -86,15 +97,33 @@ tmux attach -t keijiban
 ### 部室を覗く
 
 ```bash
-tmux attach -t bushitsu
+tmux attach -t clubroom
 ```
 
 ここでは、部員たちのやり取りと黒板の現在値を見る。
+黒板は `clubroom` の専用 pane で常時表示される。
+えるは `noticeboard` に本体があり、`clubroom` では表示 pane として見える。
+
+## すぐ使うコマンド
+
+```bash
+./meeting.sh -c
+./meeting.sh -a
+./meeting.sh -w
+./meeting.sh -k
+./request.sh "依頼本文"
+./request.sh -l
+./scripts/notify.sh <送信先> "<メッセージ>"
+./library.sh
+./library.sh -l
+tmux attach -t noticeboard
+tmux attach -t clubroom
+```
 
 ## 途中で口を挟む
 
 ```bash
-./scripts/renraku.sh <送信先> "<メッセージ>"
+./scripts/notify.sh <送信先> "<メッセージ>"
 ```
 
 送信先:
@@ -110,24 +139,24 @@ tmux attach -t bushitsu
 ### URLキューを処理する
 
 ```bash
-./toshoshitsu.sh
+./library.sh
 ```
 
 ### 未処理URLを確認する
 
 ```bash
-./toshoshitsu.sh -l
+./library.sh -l
 ```
 
 ## 基本導線
 
-1. `./kaigi.sh -c`
-2. `tmux attach -t keijiban`
+1. `./meeting.sh -c`
+2. `tmux attach -t noticeboard`
 3. えるに依頼を自然文で話す
-4. 必要なら `tmux attach -t bushitsu` で部室を見る
-5. 途中で口を挟みたければ `./scripts/renraku.sh ...`
+4. 必要なら `tmux attach -t clubroom` で部室を見る
+5. 途中で口を挟みたければ `./scripts/notify.sh ...`
 6. 結論を受け取る
-7. 必要なら `./kaigi.sh -k`
+7. 必要なら `./meeting.sh -k`
 
 ## 補足
 

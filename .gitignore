@@ -15,19 +15,19 @@ sample-project/node_modules/
 logs/*.log
 
 # Runtime state
-kokuban.md
+blackboard.md
 queue/gijiroku.yaml
-queue/keijiban.yaml
+queue/noticeboard.yaml
 queue/room_requests.yaml
 queue/toshokan_queue.yaml
-queue/toshoshitsu_queue.yaml
+queue/library_queue.yaml
 queue/reports/*.yaml
 queue/tasks/*.yaml
 
 # Local knowledge / private drafts
-backnumber/
+archive/
 keijiban/
-nisshi/
+activity-log/
 blog-*.md
 blog-sections/
 section-03-practice.md
