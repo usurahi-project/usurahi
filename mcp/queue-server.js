@@ -350,7 +350,7 @@ function archiveMeetingLog(meeting) {
   return { title, localPath };
 }
 
-function nextBacknumberNumber() {
+function nextArchiveNumber() {
   const dir = path.join(BASEDIR, "archive");
   fs.mkdirSync(dir, { recursive: true });
   const files = fs.readdirSync(dir).filter((file) => /^vol\d+_.*\.md$/i.test(file));
@@ -384,7 +384,7 @@ function readActivityLogByTitle(title) {
   return null;
 }
 
-function renderBacknumberEntry({
+function renderArchiveEntry({
   volume,
   title,
   use_cases,
@@ -420,7 +420,7 @@ ${source_excerpt}
 `;
 }
 
-function archiveBacknumber({
+function archiveEntry({
   title,
   use_cases,
   method,
@@ -433,11 +433,11 @@ function archiveBacknumber({
     return { error: `活動記録が見つからない: ${source_title}` };
   }
 
-  const volume = nextBacknumberNumber();
+  const volume = nextArchiveNumber();
   const safeSlug = slugify(title).replace(/\s+/g, "_");
   const filename = `vol${String(volume).padStart(2, "0")}_${safeSlug}.md`;
   const source_excerpt = activityLog.content.split("\n").slice(0, 12).join("\n");
-  const content = renderBacknumberEntry({
+  const content = renderArchiveEntry({
     volume,
     title,
     use_cases,
@@ -989,7 +989,7 @@ server.tool(
       };
     }
 
-    const result = archiveBacknumber({
+    const result = archiveEntry({
       title,
       use_cases,
       method,

@@ -3,9 +3,9 @@
 ## 関連
 
 - [README](../README.md)
-- [職員室の案内](./usurahi_shokuinshitsu_annai.md)
-- [薄氷の世界観と役割](./usurahi_world_and_roles.md)
-- [薄氷の技術設計](./usurahi_technical_design.md)
+- [職員室の案内](./overview.md)
+- [薄氷の世界観と役割](./world_and_roles.md)
+- [薄氷の技術設計](./technical_design.md)
 
 ## 何をするシステムか
 
@@ -163,4 +163,4 @@ tmux attach -t clubroom
 ## 補足
 
 正式依頼の入口は `request.sh` である。
-えるへの自然文は世界観のために残しつつ、入口の状態遷移は薄いCLIで安定させる。
+えるへの自然文は世界観のために残しつつ、入口の状態遷移は薄い CLI で安定させる。
