@@ -16,6 +16,7 @@ set -euo pipefail
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 NOTICEBOARD_SESSION="noticeboard"
 CLUBROOM_SESSION="clubroom"
+CLAUDE_BIN="$BASEDIR/scripts/claude-app.sh"
 
 # --- 表示ヘルパー ---
 dim()    { gum style --foreground 240 "  $1"; }
@@ -248,7 +249,7 @@ launch_claude() {
         local name="$4"
 
         # 対話モードで Claude Code を起動
-        tmux send-keys -t "$pane" "claude --model $model $common_flags" Enter
+        tmux send-keys -t "$pane" "$CLAUDE_BIN --model $model $common_flags" Enter
 
         # ダイアログ or プロンプトを待つ（統合ループ、最大45秒）
         local waited=0
@@ -342,7 +343,7 @@ launch_workers() {
             return
         fi
 
-        tmux send-keys -t "$pane" "claude --model $model $common_flags" Enter
+        tmux send-keys -t "$pane" "$CLAUDE_BIN --model $model $common_flags" Enter
 
         local waited=0
         local ready=0
