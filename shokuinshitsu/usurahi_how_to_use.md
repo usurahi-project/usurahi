@@ -93,6 +93,7 @@ tmux attach -t noticeboard
 ```
 
 ここでは、えるの受け答えを見たり、背景を補足したりする。
+`noticeboard` は背景や判断を返す窓口であり、正式依頼そのものは `request.sh` と `room_requests.yaml` が主線である。
 
 ### 部室を覗く
 
@@ -151,12 +152,13 @@ tmux attach -t clubroom
 ## 基本導線
 
 1. `./meeting.sh -c`
-2. `tmux attach -t noticeboard`
-3. えるに依頼を自然文で話す
-4. 必要なら `tmux attach -t clubroom` で部室を見る
-5. 途中で口を挟みたければ `./scripts/notify.sh ...`
-6. 結論を受け取る
-7. 必要なら `./meeting.sh -k`
+2. 必要なら `./request.sh "依頼本文"` で正式依頼を積む
+3. `tmux attach -t noticeboard`
+4. えるに背景や判断を補足する
+5. 必要なら `tmux attach -t clubroom` で部室を見る
+6. 途中で口を挟みたければ `./scripts/notify.sh ...`
+7. 結論を受け取る
+8. 必要なら `./meeting.sh -k`
 
 ## 補足
 
