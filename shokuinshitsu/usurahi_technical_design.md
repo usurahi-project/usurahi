@@ -24,7 +24,7 @@
 5. `meeting.blackboard` から `blackboard.md` を自動反映する
 6. 提出時は `respond_room_request` で正式依頼を閉じる
 7. 同時に活動記録を自動保存する
-8. 条件が揃った時だけ `create_backnumber` でバックナンバー化する
+8. 条件が揃った時だけ `create_archive_entry` でバックナンバー化する
 
 ## 進行原則
 

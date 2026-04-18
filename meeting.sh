@@ -17,11 +17,14 @@ BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 NOTICEBOARD_SESSION="noticeboard"
 CLUBROOM_SESSION="clubroom"
 
+# --- 表示ヘルパー ---
 dim()    { gum style --foreground 240 "  $1"; }
 ok()     { gum style --foreground 76 "  ✓ $1"; }
 warn()   { gum style --foreground 214 "  ⚠ $1"; }
 error()  { gum style --foreground 196 "  ✗ $1" >&2; }
+line()   { gum style --foreground 240 "  ──────────────────────────────"; }
 
+# --- 和暦日付 ---
 wareki_date() {
     local m d
     m=$(date +%-m)
@@ -31,6 +34,7 @@ wareki_date() {
     echo "${months[$m]}${kanji[$d]}日"
 }
 
+# --- 黒板バナー ---
 show_blackboard() {
     local today
     today=$(wareki_date)
@@ -51,6 +55,7 @@ show_blackboard() {
   ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
 }
 
+# --- 前提条件チェック ---
 check_prerequisites() {
     local missing=0
 
@@ -72,13 +77,13 @@ check_prerequisites() {
     dim "前提条件OK"
 }
 
+# --- キューリセット ---
 reset_queues() {
     dim "キューをリセットしています..."
 
     cat > "$BASEDIR/queue/noticeboard.yaml" << 'YAML'
 posts: []
 YAML
-    cp "$BASEDIR/queue/noticeboard.yaml" "$BASEDIR/queue/keijiban.yaml"
 
     cat > "$BASEDIR/queue/room_requests.yaml" << 'YAML'
 requests: []
@@ -100,11 +105,12 @@ YAML
     rm -f "$BASEDIR/queue/tasks/koizumi.yaml"
     rm -f "$BASEDIR/queue/reports/koizumi_report.yaml"
 
+    # 図書館キュー初期化
     cat > "$BASEDIR/queue/library_queue.yaml" << 'YAML'
 urls: []
 YAML
-    cp "$BASEDIR/queue/library_queue.yaml" "$BASEDIR/queue/toshoshitsu_queue.yaml"
 
+    # 黒板初期化
     cat > "$BASEDIR/blackboard.md" << 'MD'
 # 黒板
 最終更新: ---
@@ -142,58 +148,91 @@ YAML
 ## 💡 メモ
 なし
 MD
-    cp "$BASEDIR/blackboard.md" "$BASEDIR/kokuban.md"
 
     dim "キューリセット完了"
 }
 
+# --- 既存セッション終了 ---
 kill_sessions() {
     dim "既存セッションを終了しています..."
     tmux kill-session -t "$NOTICEBOARD_SESSION" 2>/dev/null && dim "  $NOTICEBOARD_SESSION 終了" || true
     tmux kill-session -t "$CLUBROOM_SESSION" 2>/dev/null && dim "  $CLUBROOM_SESSION 終了" || true
-    tmux kill-session -t "keijiban" 2>/dev/null && dim "  keijiban 終了" || true
-    tmux kill-session -t "bushitsu" 2>/dev/null && dim "  bushitsu 終了" || true
 }
 
+# --- tmuxセッション作成 ---
 setup_sessions() {
+    # 既存セッションがあれば終了
     kill_sessions
 
     dim "tmuxセッションを作成しています..."
 
+    # --- noticeboard セッション（える用・掲示板の窓口） ---
     tmux new-session -d -s "$NOTICEBOARD_SESSION" -c "$BASEDIR" -x 200 -y 50
-    tmux set-option -t "$NOTICEBOARD_SESSION" pane-border-format " える（副部長・連絡役） "
+    tmux set-option -t "$NOTICEBOARD_SESSION" allow-rename off
+    tmux set-option -t "$NOTICEBOARD_SESSION" automatic-rename off
+    tmux set-option -t "$NOTICEBOARD_SESSION" pane-border-format " #{pane_title} "
     tmux set-option -t "$NOTICEBOARD_SESSION" pane-border-status top
+    tmux rename-window -t "$NOTICEBOARD_SESSION:0" "える"
+    tmux select-pane -t "${NOTICEBOARD_SESSION}.0" -T "える"
     dim "  noticeboard セッション作成（える）"
 
+    # --- clubroom セッション（3列 x 2段 = 6ペイン） ---
+    # base-index を 0 に固定してペイン番号の安定性を保証
     tmux new-session -d -s "$CLUBROOM_SESSION" -c "$BASEDIR" -x 200 -y 50
+    tmux set-option -t "$CLUBROOM_SESSION" allow-rename off
+    tmux set-option -t "$CLUBROOM_SESSION" automatic-rename off
     tmux set-option -t "$CLUBROOM_SESSION" pane-base-index 0
+    tmux rename-window -t "$CLUBROOM_SESSION:0" "部室"
 
-    tmux split-window -t "${CLUBROOM_SESSION}" -h -c "$BASEDIR"
-    tmux split-window -t "${CLUBROOM_SESSION}" -v -c "$BASEDIR"
-    tmux split-window -t "${CLUBROOM_SESSION}" -v -c "$BASEDIR"
+    # まず3列を横に作る
+    tmux split-window -t "${CLUBROOM_SESSION}.0" -h -c "$BASEDIR"
+    tmux split-window -t "${CLUBROOM_SESSION}.1" -h -c "$BASEDIR"
+    tmux select-layout -t "$CLUBROOM_SESSION" even-horizontal
 
-    tmux select-pane -t "${CLUBROOM_SESSION}.0" -T "ハルヒ（部長）"
-    tmux select-pane -t "${CLUBROOM_SESSION}.1" -T "折木（部員）"
-    tmux select-pane -t "${CLUBROOM_SESSION}.2" -T "キョン（部員）"
-    tmux select-pane -t "${CLUBROOM_SESSION}.3" -T "長門（部員）"
+    # 各列を上下に割って 3列 x 2段 を作る
+    # index ずれを避けるため、右→中→左の順で割る
+    tmux split-window -t "${CLUBROOM_SESSION}.2" -v -c "$BASEDIR"
+    tmux split-window -t "${CLUBROOM_SESSION}.1" -v -c "$BASEDIR"
+    tmux split-window -t "${CLUBROOM_SESSION}.0" -v -c "$BASEDIR"
 
+    # ペインタイトル設定
+    tmux select-pane -t "${CLUBROOM_SESSION}.0" -T "ハルヒ"
+    tmux select-pane -t "${CLUBROOM_SESSION}.1" -T "折木"
+    tmux select-pane -t "${CLUBROOM_SESSION}.2" -T "黒板"
+    tmux select-pane -t "${CLUBROOM_SESSION}.3" -T "キョン"
+    tmux select-pane -t "${CLUBROOM_SESSION}.4" -T "える"
+    tmux select-pane -t "${CLUBROOM_SESSION}.5" -T "長門"
+
+    # ペインボーダーにタイトル表示
     tmux set-option -t "$CLUBROOM_SESSION" pane-border-format " #{pane_title} "
     tmux set-option -t "$CLUBROOM_SESSION" pane-border-status top
-    tmux select-layout -t "$CLUBROOM_SESSION" tiled
 
+    # 黒板ペインは blackboard.md を定期表示する
+    tmux send-keys -t "${CLUBROOM_SESSION}.2" C-c
+    tmux send-keys -t "${CLUBROOM_SESSION}.2" C-u
+    tmux send-keys -t "${CLUBROOM_SESSION}.2" "while true; do clear; cat '$BASEDIR/blackboard.md'; sleep 2; done" Enter
+
+    # える表示ペインは noticeboard の様子を定期表示する
+    tmux send-keys -t "${CLUBROOM_SESSION}.4" C-c
+    tmux send-keys -t "${CLUBROOM_SESSION}.4" C-u
+    tmux send-keys -t "${CLUBROOM_SESSION}.4" "while true; do clear; tmux capture-pane -pt '${NOTICEBOARD_SESSION}.0'; sleep 2; done" Enter
+
+    # ペインマッピングを検証して記録
     dim "  clubroom ペインマッピング:"
-    for i in 0 1 2 3; do
+    for i in 0 1 2 3 4 5; do
         local title
         title=$(tmux display-message -t "${CLUBROOM_SESSION}.${i}" -p '#{pane_title}' 2>/dev/null || echo "???")
         dim "    pane $i → $title"
     done
 }
 
+# --- Claude Code 起動 ---
 launch_claude() {
     dim "Claude Code を起動しています..."
 
     local common_flags="--dangerously-skip-permissions"
 
+    # Claude Code のプロンプト検出（❯ = U+276F が入力待ちの目印）
     detect_prompt() {
         local pane="$1"
         local content
@@ -201,11 +240,107 @@ launch_claude() {
         echo "$content" | grep -q '❯'
     }
 
+    # エージェント起動ヘルパー
     launch_agent() {
         local pane="$1"
         local model="$2"
         local boot_file="$3"
         local name="$4"
+
+        # 対話モードで Claude Code を起動
+        tmux send-keys -t "$pane" "claude --model $model $common_flags" Enter
+
+        # ダイアログ or プロンプトを待つ（統合ループ、最大45秒）
+        local waited=0
+        local ready=0
+        while [[ $waited -lt 45 ]]; do
+            sleep 2
+            waited=$(( waited + 2 ))
+            local pane_content
+            pane_content=$(tmux capture-pane -t "$pane" -p -S -10 2>/dev/null || true)
+
+            # ダイアログ検出 → 承認
+            if echo "$pane_content" | grep -q "Yes, I accept"; then
+                tmux send-keys -t "$pane" Down
+                sleep 0.3
+                tmux send-keys -t "$pane" Enter
+                dim "    ${name}: バイパス権限承認"
+                # 承認後、プロンプトを待つ
+                sleep 3
+            fi
+
+            # プロンプト検出（行頭の ">"）
+            if detect_prompt "$pane"; then
+                ready=1
+                break
+            fi
+        done
+
+        if [[ $ready -eq 0 ]]; then
+            warn "  ${name}: プロンプト検出タイムアウト（${waited}秒）— boot送信を試行"
+        fi
+
+        # 初期プロンプトを送信（-l でリテラル送信、特殊文字の干渉を防ぐ）
+        local boot_text
+        boot_text=$(cat "$boot_file")
+        tmux send-keys -t "$pane" -l "$boot_text"
+        tmux send-keys -t "$pane" Enter
+        ok "${name}"
+    }
+
+    # える（Opus）— noticeboard セッション
+    launch_agent "${NOTICEBOARD_SESSION}.0" "claude-opus-4-6" \
+        "$BASEDIR/instructions/eru_boot.txt" "える"
+
+    sleep 5  # Opus→Opus: レート制限対策で長めに
+
+    # ハルヒ（Opus）— clubroom pane 0
+    launch_agent "${CLUBROOM_SESSION}.0" "claude-opus-4-6" \
+        "$BASEDIR/instructions/haruhi_boot.txt" "ハルヒ"
+
+    echo ""
+    line
+    echo ""
+    gum style --foreground 255 "  える＋ハルヒが部室に来ました"
+    echo ""
+    gum style --foreground 240 "  えるに話す  $(gum style --foreground 123 'tmux attach -t noticeboard')"
+    gum style --foreground 240 "  部室を覗く  $(gum style --foreground 123 'tmux attach -t clubroom')"
+    gum style --foreground 240 "  部員を呼ぶ  $(gum style --foreground 123 '~/usurahi/meeting.sh -w')"
+    echo ""
+}
+
+# --- 部員召集（遅延起動） ---
+launch_workers() {
+    echo -e "  部員を呼んでいます..."
+
+    local common_flags="--dangerously-skip-permissions"
+
+    # clubroom セッションが存在するか確認
+    if ! tmux has-session -t "$CLUBROOM_SESSION" 2>/dev/null; then
+        error "clubroom セッションがありません。先に meeting.sh を実行してください"
+        exit 1
+    fi
+
+    # Claude Code のプロンプト検出
+    detect_prompt() {
+        local pane="$1"
+        local content
+        content=$(tmux capture-pane -t "$pane" -p -S -5 2>/dev/null || true)
+        echo "$content" | grep -q '❯'
+    }
+
+    # エージェント起動ヘルパー（launch_claude と同じ）
+    launch_agent() {
+        local pane="$1"
+        local model="$2"
+        local boot_file="$3"
+        local name="$4"
+
+        # 既に Claude が起動しているペインはスキップ
+        if detect_prompt "$pane"; then
+            dim "  ${name}: 既に起動済み — スキップ"
+            return
+        fi
 
         tmux send-keys -t "$pane" "claude --model $model $common_flags" Enter
 
@@ -232,152 +367,96 @@ launch_claude() {
         done
 
         if [[ $ready -eq 0 ]]; then
-            warn "${name}: プロンプト待ちタイムアウト（手動確認推奨）"
-            return
+            warn "  ${name}: プロンプト検出タイムアウト（${waited}秒）— boot送信を試行"
         fi
 
         local boot_text
         boot_text=$(cat "$boot_file")
         tmux send-keys -t "$pane" -l "$boot_text"
         tmux send-keys -t "$pane" Enter
-        dim "    ${name}: ブート完了"
-        sleep 1
+        ok "${name}"
     }
 
-    launch_agent "${NOTICEBOARD_SESSION}.0" "claude-opus-4-6" "$BASEDIR/instructions/eru_boot.txt" "える"
-    launch_agent "${CLUBROOM_SESSION}.0" "claude-opus-4-6" "$BASEDIR/instructions/haruhi_boot.txt" "ハルヒ"
-}
+    # 折木（Sonnet）— clubroom pane 1
+    launch_agent "${CLUBROOM_SESSION}.1" "claude-sonnet-4-5-20250929" \
+        "$BASEDIR/instructions/oreki_boot.txt" "折木"
 
-show_ready() {
-    echo ""
-    ok "起動完了"
-    echo ""
-    gum style --foreground 240 "  えるに話す  $(gum style --foreground 123 'tmux attach -t noticeboard')"
-    gum style --foreground 240 "  部室を覗く  $(gum style --foreground 123 'tmux attach -t clubroom')"
-    gum style --foreground 240 "  部員を呼ぶ  $(gum style --foreground 123 '~/usurahi/meeting.sh -w')"
-    echo ""
-}
+    sleep 3
 
-call_members() {
-    check_prerequisites
-    dim "部員を呼んでいます..."
+    # キョン（Sonnet）— clubroom pane 3
+    launch_agent "${CLUBROOM_SESSION}.3" "claude-sonnet-4-5-20250929" \
+        "$BASEDIR/instructions/kyon_boot.txt" "キョン"
 
-    if ! tmux has-session -t "$CLUBROOM_SESSION" 2>/dev/null; then
-        error "clubroom セッションがありません。先に meeting.sh を実行してください"
-        exit 1
-    fi
+    sleep 3
 
-    detect_prompt() {
-        local pane="$1"
-        local content
-        content=$(tmux capture-pane -t "$pane" -p -S -5 2>/dev/null || true)
-        echo "$content" | grep -q '❯'
-    }
+    sleep 5  # Sonnet→Opus
 
-    launch_agent() {
-        local pane="$1"
-        local model="$2"
-        local boot_file="$3"
-        local name="$4"
-
-        if detect_prompt "$pane"; then
-            dim "    ${name}: 既に起動済み"
-            return
-        fi
-
-        tmux send-keys -t "$pane" "claude --model $model --dangerously-skip-permissions" Enter
-
-        local waited=0
-        local ready=0
-        while [[ $waited -lt 45 ]]; do
-            sleep 2
-            waited=$(( waited + 2 ))
-            local pane_content
-            pane_content=$(tmux capture-pane -t "$pane" -p -S -10 2>/dev/null || true)
-
-            if echo "$pane_content" | grep -q "Yes, I accept"; then
-                tmux send-keys -t "$pane" Down
-                sleep 0.3
-                tmux send-keys -t "$pane" Enter
-                dim "    ${name}: バイパス権限承認"
-                sleep 3
-            fi
-
-            if detect_prompt "$pane"; then
-                ready=1
-                break
-            fi
-        done
-
-        if [[ $ready -eq 0 ]]; then
-            warn "${name}: プロンプト待ちタイムアウト（手動確認推奨）"
-            return
-        fi
-
-        local boot_text
-        boot_text=$(cat "$boot_file")
-        tmux send-keys -t "$pane" -l "$boot_text"
-        tmux send-keys -t "$pane" Enter
-        dim "    ${name}: ブート完了"
-        sleep 1
-    }
-
-    launch_agent "${CLUBROOM_SESSION}.1" "claude-sonnet-4-5-20250929" "$BASEDIR/instructions/oreki_boot.txt" "折木"
-    launch_agent "${CLUBROOM_SESSION}.2" "claude-sonnet-4-5-20250929" "$BASEDIR/instructions/kyon_boot.txt" "キョン"
-    launch_agent "${CLUBROOM_SESSION}.3" "claude-opus-4-6" "$BASEDIR/instructions/nagato_boot.txt" "長門"
+    # 長門（Opus）— clubroom pane 5
+    launch_agent "${CLUBROOM_SESSION}.5" "claude-opus-4-6" \
+        "$BASEDIR/instructions/nagato_boot.txt" "長門"
 
     echo ""
-    ok "部員召集完了"
+    line
+    echo ""
+    gum style --foreground 255 "  全員揃いました"
     echo ""
 }
 
+# --- メイン ---
 main() {
-    local mode="${1:-}"
+    local mode="normal"
 
-    case "$mode" in
-        -k)
+    while getopts "scwak" opt; do
+        case $opt in
+            s) mode="setup" ;;
+            c) mode="clean" ;;
+            w) mode="workers" ;;
+            a) mode="all" ;;
+            k) mode="kill" ;;
+            *) echo "Usage: $0 [-s|-c|-w|-a|-k]"; exit 1 ;;
+        esac
+    done
+
+    echo ""
+    show_blackboard
+    echo ""
+
+    check_prerequisites
+
+    case $mode in
+        kill)
             kill_sessions
-            ok "終了しました"
+            echo ""
+            gum style --foreground 240 --italic "  下校しました。また明日"
+            echo ""
             exit 0
             ;;
-        -c)
-            show_blackboard
+        setup)
+            setup_sessions
             echo ""
-            check_prerequisites
+            gum style --foreground 240 --italic "  部室の鍵を開けました（まだ誰も来てません）"
+            ;;
+        clean)
             reset_queues
             setup_sessions
             launch_claude
-            show_ready
             ;;
-        -w)
-            call_members
+        workers)
+            launch_workers
             ;;
-        -a)
-            show_blackboard
-            echo ""
-            check_prerequisites
-            reset_queues
+        all)
             setup_sessions
             launch_claude
-            call_members
-            show_ready
+            sleep 5
+            launch_workers
             ;;
-        -s)
-            show_blackboard
-            echo ""
-            check_prerequisites
-            setup_sessions
-            ok "セッション作成完了（Claude未起動）"
-            ;;
-        *)
-            show_blackboard
-            echo ""
-            check_prerequisites
+        normal)
             setup_sessions
             launch_claude
-            show_ready
             ;;
     esac
+
+    echo ""
 }
 
 main "$@"

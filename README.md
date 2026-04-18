@@ -14,51 +14,6 @@
 - 良いやり方だけをバックナンバーとして育てる
 - 図書室に記事やナレッジを取り込む
 
-## 場所の意味
-
-- `noticeboard`
-  まだ依頼にも議題にもなっていない、軽いメモ・思いつき・一次情報を置いておく場所
-- `clubroom`
-  持ち込まれた依頼を、部として受け止めて議論する場所
-- `blackboard`
-  いま進んでいる依頼の現在値を共有する面
-- `activity-log`
-  1つの依頼がどう進み、どう結論に至ったかを残す記録
-- `archive`
-  繰り返し使えるやり方を、再利用可能な形で残す棚
-- `library`
-  外から得た記事や知識を取り込んで蓄える場所
-- `staffroom`
-  薄氷の使い方、世界観、技術設計など、運用知を置く場所
-
-## 実装上の対応
-
-| 世界観 | 実装 |
-|--------|------|
-| `noticeboard` | tmux セッション `noticeboard` |
-| `clubroom` | tmux セッション `clubroom` |
-| `blackboard` | `blackboard.md` |
-| `activity-log` | `activity-log/` |
-| `archive` | `archive/` |
-| `library` | `./library.sh` |
-| `staffroom` | `shokuinshitsu/` |
-
-## 流れ
-
-主線:
-
-1. ユーザーが依頼を持ち込む
-2. `clubroom` で部として受け止める
-3. `blackboard` に現在値を出す
-4. 完了後は `activity-log` に残す
-5. 再利用価値があれば `archive` に編む
-
-脇線:
-
-- `noticeboard` には、まだ形になっていない断片を置く
-- `library` には、外から得た知識を入れる
-- `staffroom` には、薄氷そのものの運用知を残す
-
 ## はじめ方
 
 ### 1. 部活を起動する
@@ -91,6 +46,7 @@ tmux attach -t noticeboard
 ```
 
 ここで、えるの受け答えを見たり、必要なら背景を補足したりします。
+`noticeboard` は会話窓口ではあるが、正式依頼の主線入口そのものではありません。
 
 例:
 
@@ -105,7 +61,15 @@ sample-project の TODO CLI を改善したいです。
 tmux attach -t clubroom
 ```
 
-部員たちのやり取りや、黒板の現在値を見られます。
+部員たちのやり取りと、黒板の現在値を見られます。
+現在の `clubroom` は 6 pane 構成です。
+
+- ハルヒ
+- 折木
+- 黒板
+- キョン
+- える（部室表示）
+- 長門
 
 ### 5. 必要なら途中で口を挟む
 
@@ -122,8 +86,8 @@ tmux attach -t clubroom
 ./meeting.sh -k   # 終了
 ./request.sh "依頼本文"  # 正式依頼入口
 ./request.sh -l          # 正式依頼一覧
-./library.sh       # 図書室の未処理URLを処理
-./library.sh -l    # 図書室キュー一覧
+./library.sh    # 図書室の未処理URLを処理
+./library.sh -l # 図書室キュー一覧
 ```
 
 ## 情報はどこに残るか
@@ -144,5 +108,5 @@ tmux attach -t clubroom
 
 ## 補足
 
-正式依頼入口は `request.sh` です。
+いまは `request.sh` が正式依頼入口です。
 えるへの自然文は世界観として残しつつ、状態遷移の入口は薄いCLIで安定させています。

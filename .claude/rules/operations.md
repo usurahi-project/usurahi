@@ -35,5 +35,5 @@ YAML を直接編集しない。
 ## ナレッジ
 
 - `archive`: 図書館/薄氷バックナンバー/
-- `activity-log`: 部室/活動記録/
+- `activity_log`: 部室/活動記録/
 - `library`: 図書館/開架/

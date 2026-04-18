@@ -1,10 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+#=============================================================================
+# notify.sh — 連絡網（エージェント間メッセージ送信）
+#=============================================================================
+# Usage:
+#   ./scripts/notify.sh <送信先> <メッセージ>
+#
+# 送信先: eru, haruhi, oreki, kyon, nagato
+#
+# Examples:
+#   ./scripts/notify.sh eru "タスク完了しました"
+#   ./scripts/notify.sh haruhi "レビューお願いします"
+#=============================================================================
+
 BASEDIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOCKDIR="$BASEDIR/queue/.lock"
 STALE_SECONDS=30
 
+# --- ペイン解決 ---
 resolve_pane() {
     local target="$1"
     case "$target" in
@@ -21,11 +35,13 @@ resolve_pane() {
     esac
 }
 
+# --- アトミックロック（mkdir方式・macOS互換） ---
 acquire_lock() {
     local max_attempts=20
     local attempt=0
 
     while ! mkdir "$LOCKDIR" 2>/dev/null; do
+        # ステールロック検出
         if [[ -d "$LOCKDIR" ]]; then
             local lock_time
             lock_time=$(stat -f %m "$LOCKDIR" 2>/dev/null || echo 0)
@@ -48,6 +64,7 @@ acquire_lock() {
         sleep 0.1
     done
 
+    # ロック取得成功時にPIDを記録
     echo $$ > "$LOCKDIR/pid"
 }
 
@@ -55,6 +72,7 @@ release_lock() {
     rm -rf "$LOCKDIR"
 }
 
+# --- モデル・ブートファイル解決 ---
 resolve_model() {
     case "$1" in
         eru|haruhi|nagato) echo "claude-opus-4-6" ;;
@@ -72,30 +90,35 @@ resolve_boot() {
     esac
 }
 
+# --- Claude Code 起動チェック＆自動起動 ---
 ensure_running() {
     local target="$1"
     local pane="$2"
 
+    # ❯ プロンプトがあれば起動済み
     local content
     content=$(tmux capture-pane -t "$pane" -p -S -5 2>/dev/null || true)
     if echo "$content" | grep -q '❯'; then
         return 0
     fi
 
+    # シェルプロンプトだけなら未起動 → 自動起動
     local model boot_file
     model=$(resolve_model "$target")
     boot_file=$(resolve_boot "$target")
 
     if [[ ! -f "$boot_file" ]]; then
-        return 0
+        return 0  # ブートファイルなければスキップ
     fi
 
+    # 既存の入力をクリアしてからClaude Codeを起動
     tmux send-keys -t "$pane" C-c
     sleep 0.3
     tmux send-keys -t "$pane" C-u
     sleep 0.3
     tmux send-keys -t "$pane" "claude --model $model --dangerously-skip-permissions" Enter
 
+    # プロンプト待ち（最大45秒）
     local waited=0
     while [[ $waited -lt 45 ]]; do
         sleep 2
@@ -103,6 +126,7 @@ ensure_running() {
         local pane_content
         pane_content=$(tmux capture-pane -t "$pane" -p -S -10 2>/dev/null || true)
 
+        # ダイアログ検出 → 承認
         if echo "$pane_content" | grep -q "Yes, I accept"; then
             tmux send-keys -t "$pane" Down
             sleep 0.3
@@ -111,24 +135,30 @@ ensure_running() {
         fi
 
         if echo "$pane_content" | grep -q '❯'; then
+            # ブートプロンプト送信
             local boot_text
             boot_text=$(cat "$boot_file")
             tmux send-keys -t "$pane" -l "$boot_text"
             tmux send-keys -t "$pane" Enter
+            # ブート完了を待つ
             sleep 5
             return 0
         fi
     done
 }
 
+# --- メッセージ送信 ---
 send_message() {
     local target="$1"
     local message="$2"
     local pane
 
     pane=$(resolve_pane "$target")
+
+    # 送信先が未起動なら自動起動
     ensure_running "$target" "$pane"
 
+    # 起動完了後、プロンプトを待つ
     local waited=0
     while [[ $waited -lt 60 ]]; do
         local content
@@ -140,13 +170,21 @@ send_message() {
         waited=$(( waited + 2 ))
     done
 
+    # 改行をスペースに変換（send-keys -l は改行をそのまま Enter として送るため、
+    # 意図しない中間送信が発生する。メッセージは1行に正規化する）
     message=$(echo "$message" | tr '\n' ' ' | sed 's/  */ /g')
+
+    # 既存の入力をクリアしてからメッセージ送信
     tmux send-keys -t "$pane" C-u
     sleep 0.2
+
+    # tmuxペインにメッセージ送信（-l でリテラル送信、特殊文字の干渉を防ぐ）
+    # Claude Codeのプロンプトに直接入力する
     tmux send-keys -t "$pane" -l "$message"
     tmux send-keys -t "$pane" Enter
 }
 
+# --- メイン ---
 main() {
     if [[ $# -lt 2 ]]; then
         echo "Usage: $0 <送信先> <メッセージ>"
@@ -158,6 +196,7 @@ main() {
     shift
     local message="$*"
 
+    # ロック取得 → 送信 → ロック解放
     acquire_lock
     trap release_lock EXIT
 

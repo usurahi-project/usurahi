@@ -1,25 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+#=============================================================================
+# library.sh — 薄氷図書室 URL取り込み（摩耶花を呼び出す）
+#=============================================================================
+# Usage:
+#   ./library.sh           キューの未処理URLを摩耶花が処理する
+#   ./library.sh -l        キューの未処理URL一覧を表示する
+#=============================================================================
+
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 QUEUE_FILE="$BASEDIR/queue/library_queue.yaml"
 
+# PATH にhomebrewを追加（launchd経由対応）
 export PATH="/opt/homebrew/bin:$PATH"
 
+# --- 表示ヘルパー（gum がなければプレーンテキスト） ---
 if command -v gum &>/dev/null; then
     dim()    { gum style --foreground 240 "  $1"; }
+    ok()     { gum style --foreground 76 "  ✓ $1"; }
     warn()   { gum style --foreground 214 "  ⚠ $1"; }
     error()  { gum style --foreground 196 "  ✗ $1" >&2; }
     line()   { gum style --foreground 240 "  ──────────────────────────────"; }
     maya()   { gum style --foreground 213 "  摩耶花「$1」"; }
 else
     dim()    { echo "  $1"; }
+    ok()     { echo "  ✓ $1"; }
     warn()   { echo "  ⚠ $1"; }
     error()  { echo "  ✗ $1" >&2; }
     line()   { echo "  ──────────────────────────────"; }
     maya()   { echo "  摩耶花「$1」"; }
 fi
 
+# --- 図書室バナー ---
 show_library_door() {
     if ! command -v gum &>/dev/null; then return; fi
     gum style --foreground 213 "
@@ -42,23 +55,25 @@ show_library_door() {
   └────────────────────────────────────────────────────┘"
 }
 
+# --- 前提条件チェック ---
 check_prerequisites() {
     if ! command -v claude &>/dev/null; then
         error "claude (Claude Code CLI) がインストールされていません"
         exit 1
     fi
     if [[ ! -f "$QUEUE_FILE" ]]; then
-        printf 'urls: []\n' > "$QUEUE_FILE"
+        echo "urls: []" > "$QUEUE_FILE"
     fi
-    cp "$QUEUE_FILE" "$BASEDIR/queue/toshoshitsu_queue.yaml"
 }
 
+# --- 未処理件数カウント（grep方式・外部依存なし） ---
 count_pending() {
     local c
     c=$(grep -c 'status: pending' "$QUEUE_FILE" 2>/dev/null) || true
     echo "${c:-0}"
 }
 
+# --- キュー一覧表示 ---
 list_queue() {
     local count
     count=$(count_pending)
@@ -74,16 +89,19 @@ list_queue() {
     done
 }
 
+# --- 部会稼働チェック ---
 check_bukatsu_active() {
     if tmux has-session -t noticeboard 2>/dev/null || tmux has-session -t clubroom 2>/dev/null; then
-        return 0
+        return 0  # 稼働中
     fi
-    return 1
+    return 1  # 停止中
 }
 
+# --- 摩耶花起動（リトライ付き） ---
 run_mayaka() {
     check_prerequisites
 
+    # 未処理件数チェック
     local pending_count
     pending_count=$(count_pending)
 
@@ -98,6 +116,7 @@ run_mayaka() {
     show_library_door
     echo ""
 
+    # 部会稼働中なら警告
     if check_bukatsu_active; then
         warn "部会が稼働中よ。レート制限に引っかかるかも"
         maya "部室が騒がしいわね...まぁやってみるけど"
@@ -107,11 +126,13 @@ run_mayaka() {
     maya "${pending_count}件ね。ちゃんと整理するから待ってなさい"
     echo ""
 
+    # リトライループ（最大3回）
     local max_retries=3
     local attempt=1
     local result
 
     while [[ $attempt -le $max_retries ]]; do
+        # 摩耶花を非対話モードで起動（Haiku: 軽量＆低コスト）
         result=$(cd "$BASEDIR" && claude --model claude-haiku-4-5-20251001 \
             --dangerously-skip-permissions \
             --max-turns 15 \
@@ -119,7 +140,7 @@ run_mayaka() {
 あなたは伊原摩耶花。薄氷図書館の図書委員。
 
 ## タスク
-MCPツール `get_toshoshitsu_queue` で未処理（pending）のURLを取得し、各URLを以下の手順で処理してください。
+MCPツール `get_library_queue` で未処理（pending）のURLを取得し、各URLを以下の手順で処理してください。
 
 ## 各URLの処理手順
 1. WebFetchツールでURLの内容を取得する
@@ -142,12 +163,17 @@ MCPツール `get_toshoshitsu_queue` で未処理（pending）のURLを取得し
    ## 出典
    - [タイトル](URL)
    ```
-5. 適切なタグを付ける
-6. `save_to_obsidian` で保存（category: "library"）
-7. `update_toshoshitsu_queue` でURLのstatusを "done" にする
-8. 次のURLへ
+5. 適切なタグを付ける（ひとことメモも参考にする）:
+   - 技術系: TypeScript, React, Node.js, Python, Go, Rust 等
+   - 分野系: アーキテクチャ, セキュリティ, パフォーマンス, テスト, CI-CD 等
+   - 種別系: 公式ドキュメント, テックブログ, チュートリアル, リファレンス 等
+5. `save_to_obsidian` で保存（category: "library"）
+6. `update_library_queue` でURLのstatusを "done" にする
+7. 次のURLへ
 
 ## 各URL処理後の報告（1件ごとに出力）
+以下のフォーマットで報告する:
+
 ```
 📚 「（タイトル）」
    タグ: #○○ #○○ #○○
@@ -156,11 +182,26 @@ MCPツール `get_toshoshitsu_queue` で未処理（pending）のURLを取得し
    → 開架に入れたわよ。（記事の内容に対する摩耶花らしいひとこと感想）
 ```
 
+「→」の行には、保存完了の報告に加えて記事を読んだ感想を一言添える。
+感想は摩耶花の口調で、記事の具体的な中身に触れること。褒め・ツッコミ・実用性への言及など自由に。
+例:
+- 「→ 開架に入れたわよ。設計思想がしっかりしてて、UIライブラリの手本みたいな記事ね。」
+- 「→ 開架に入れたわよ。Hooksの使い方が独特で面白いけど、初心者には向かないわね。」
+- 「→ 開架に入れたわよ。これ地味に実務で使えるやつ。覚えておきなさい。」
+
+失敗した場合:
+```
+❌ （URL）
+   理由: （失敗理由）
+```
+
 ## 全URL処理後
 処理件数のまとめと一言。口調は摩耶花らしく。
+例: 「3件整理したわよ。ちゃんとタグ付けしておいたから、後で検索できるわ。」
 PROMPT
 )" 2>&1) || true
 
+        # レート制限チェック
         if echo "$result" | grep -qi 'credit balance\|rate limit\|too many requests\|overloaded'; then
             if [[ $attempt -lt $max_retries ]]; then
                 local wait_sec=$(( attempt * 30 ))
@@ -177,8 +218,8 @@ PROMPT
             fi
         fi
 
+        # 成功
         echo "$result"
-        cp "$QUEUE_FILE" "$BASEDIR/queue/toshoshitsu_queue.yaml"
         break
     done
 
@@ -187,6 +228,7 @@ PROMPT
     echo ""
 }
 
+# --- メイン ---
 main() {
     check_prerequisites
 
@@ -196,8 +238,9 @@ main() {
             ;;
         -h|--help)
             echo "Usage: $0 [options]"
-            echo "  -l, --list   未処理URL一覧"
-            echo "  -h, --help   ヘルプ"
+            echo "  (なし)    摩耶花を起動してキューを処理する"
+            echo "  -l        未処理URL一覧を表示する"
+            echo "  -h        ヘルプを表示する"
             ;;
         *)
             run_mayaka

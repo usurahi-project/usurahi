@@ -17,15 +17,6 @@
 2. えるに依頼を持ち込んで、会議を進めてもらう
 3. 必要なら図書室で記事や知識を取り込む
 
-## 用語の対応
-
-| 世界観 | 実装 |
-|--------|------|
-| `noticeboard` | `noticeboard` |
-| `clubroom` | `clubroom` |
-| `staffroom` | `shokuinshitsu` |
-| `library` | `library` |
-
 ## 最初に打つコマンド
 
 ### 部活を起動する
@@ -37,8 +28,19 @@
 起きること:
 
 - えるとハルヒが起動する
-- `noticeboard` セッションが える用に立ち上がる
+- `noticeboard` セッションがえる用に立ち上がる
 - `clubroom` セッションが部室として立ち上がる
+- `clubroom` には上段にハルヒ・黒板・える表示、下段に折木・キョン・長門の 6 pane が並ぶ
+
+今の tmux 構成:
+
+- `noticeboard.0`: える
+- `clubroom.0`: ハルヒ
+- `clubroom.1`: 折木
+- `clubroom.2`: 黒板
+- `clubroom.3`: キョン
+- `clubroom.4`: える（部室表示）
+- `clubroom.5`: 長門
 
 ### まっさらな状態から始める
 
@@ -91,7 +93,7 @@ tmux attach -t noticeboard
 ```
 
 ここでは、えるの受け答えを見たり、背景を補足したりする。
-`noticeboard` は背景や判断を補足する窓口であり、正式依頼そのものは `request.sh` と `room_requests.yaml` が主線である。
+`noticeboard` は背景や判断を返す窓口であり、正式依頼そのものは `request.sh` と `room_requests.yaml` が主線である。
 
 ### 部室を覗く
 
@@ -100,6 +102,24 @@ tmux attach -t clubroom
 ```
 
 ここでは、部員たちのやり取りと黒板の現在値を見る。
+黒板は `clubroom` の専用 pane で常時表示される。
+えるは `noticeboard` に本体があり、`clubroom` では表示 pane として見える。
+
+## すぐ使うコマンド
+
+```bash
+./meeting.sh -c
+./meeting.sh -a
+./meeting.sh -w
+./meeting.sh -k
+./request.sh "依頼本文"
+./request.sh -l
+./scripts/notify.sh <送信先> "<メッセージ>"
+./library.sh
+./library.sh -l
+tmux attach -t noticeboard
+tmux attach -t clubroom
+```
 
 ## 途中で口を挟む
 
@@ -143,4 +163,4 @@ tmux attach -t clubroom
 ## 補足
 
 正式依頼の入口は `request.sh` である。
-えるへの自然文は、背景や判断を返すための会話窓口として残す。
+えるへの自然文は世界観のために残しつつ、入口の状態遷移は薄いCLIで安定させる。

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 薄氷図書館MCPサーバー（グローバル用・軽量版）
- * /toshoshitsu スキルと toshoshitsu.sh から使う。
+ * /library スキルと library.sh から使う。
  * 図書館キュー + Obsidianナレッジ操作のみ提供。
  */
 
@@ -16,7 +16,7 @@ const BASEDIR = path.join(process.env.HOME, "usurahi");
 const QUEUE = path.join(BASEDIR, "queue");
 const OBSIDIAN_VAULT = path.join(process.env.HOME, "Documents", "Obsidian Vault");
 const OBSIDIAN_USURAHI = path.join(OBSIDIAN_VAULT, "薄氷");
-const OBSIDIAN_FOLDERS = { backnumber: "図書館/薄氷バックナンバー", nisshi: "部室/活動記録", library: "図書館/開架" };
+const OBSIDIAN_FOLDERS = { archive: "図書館/薄氷バックナンバー", activity_log: "部室/活動記録", library: "図書館/開架" };
 
 // ── helpers ──
 
@@ -38,21 +38,21 @@ function timestamp() {
 // ── server ──
 
 const server = new McpServer({
-  name: "usurahi-toshoshitsu",
+  name: "usurahi-library",
   version: "1.0.0",
 });
 
-// ── 1. add_to_toshoshitsu_queue ──
+// ── 1. add_to_library_queue ──
 
 server.tool(
-  "add_to_toshoshitsu_queue",
+  "add_to_library_queue",
   "薄氷図書館のURLキューにURLを追加する。",
   {
     url: z.string().describe("追加するURL"),
     note: z.string().default("").describe("ひとことメモ（任意）"),
   },
   async ({ url, note }) => {
-    const filePath = path.join(QUEUE, "toshoshitsu_queue.yaml");
+    const filePath = path.join(QUEUE, "library_queue.yaml");
     const data = readYaml(filePath) || { urls: [] };
     if (!data.urls) data.urls = [];
 
@@ -67,16 +67,16 @@ server.tool(
   }
 );
 
-// ── 2. get_toshoshitsu_queue ──
+// ── 2. get_library_queue ──
 
 server.tool(
-  "get_toshoshitsu_queue",
+  "get_library_queue",
   "薄氷図書館のURLキューを取得する。",
   {
     status: z.enum(["pending", "done", "all"]).default("pending").describe("フィルタするステータス"),
   },
   async ({ status }) => {
-    const data = readYaml(path.join(QUEUE, "toshoshitsu_queue.yaml"));
+    const data = readYaml(path.join(QUEUE, "library_queue.yaml"));
     if (!data?.urls || data.urls.length === 0) return { content: [{ type: "text", text: "キューは空" }] };
     const urls = status === "all" ? data.urls : data.urls.filter((u) => u.status === status);
     if (urls.length === 0) return { content: [{ type: "text", text: `${status}のURLなし` }] };
@@ -84,17 +84,17 @@ server.tool(
   }
 );
 
-// ── 3. update_toshoshitsu_queue ──
+// ── 3. update_library_queue ──
 
 server.tool(
-  "update_toshoshitsu_queue",
+  "update_library_queue",
   "薄氷図書館のURLキューのアイテムのstatusを更新する。",
   {
     url: z.string().describe("対象のURL"),
     status: z.enum(["done", "failed"]).describe("新しいステータス"),
   },
   async ({ url, status }) => {
-    const filePath = path.join(QUEUE, "toshoshitsu_queue.yaml");
+    const filePath = path.join(QUEUE, "library_queue.yaml");
     const data = readYaml(filePath) || { urls: [] };
     const item = data.urls?.find((u) => u.url === url);
     if (!item) return { content: [{ type: "text", text: `キューに見つからない: ${url}` }] };
@@ -111,7 +111,7 @@ server.tool(
   "save_to_obsidian",
   "Obsidian Vaultにナレッジノートを保存する。フロントマター(tags, date等)とwiki-linkを自動付与。",
   {
-    category: z.enum(["backnumber", "nisshi", "library"]).describe("保存先カテゴリ"),
+    category: z.enum(["archive", "activity_log", "library"]).describe("保存先カテゴリ"),
     title: z.string().describe("ノートのタイトル（ファイル名になる）"),
     content: z.string().describe("ノートの本文（Markdown）"),
     tags: z.array(z.string()).default([]).describe("タグ一覧"),
@@ -145,12 +145,12 @@ server.tool(
   "Obsidian Vault内の薄氷ナレッジを検索する。キーワードでファイル名と内容を横断検索。",
   {
     query: z.string().describe("検索キーワード"),
-    category: z.enum(["backnumber", "nisshi", "library", "all"]).default("all").describe("検索対象カテゴリ"),
+    category: z.enum(["archive", "activity_log", "library", "all"]).default("all").describe("検索対象カテゴリ"),
   },
   async ({ query, category }) => {
     const searchDirs = [];
-    if (category === "all" || category === "backnumber") searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.backnumber));
-    if (category === "all" || category === "nisshi") searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.nisshi));
+    if (category === "all" || category === "archive") searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.archive));
+    if (category === "all" || category === "activity_log") searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.activity_log));
     if (category === "all" || category === "library") searchDirs.push(path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.library));
 
     const results = [];
@@ -192,7 +192,7 @@ server.tool(
   "Obsidian Vault内の薄氷ノートを読む。",
   {
     title: z.string().describe("ノートのタイトル（拡張子なし）"),
-    category: z.enum(["backnumber", "nisshi", "library"]).default("backnumber").describe("カテゴリ"),
+    category: z.enum(["archive", "activity_log", "library"]).default("archive").describe("カテゴリ"),
   },
   async ({ title, category }) => {
     const folderName = OBSIDIAN_FOLDERS[category] || category;
