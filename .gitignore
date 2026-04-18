@@ -1,0 +1,38 @@
+# OS / editor
+.DS_Store
+
+# Secrets / local config
+.env
+.mcp.json
+.claude/settings.local.json
+
+# Dependencies
+node_modules/
+mcp/node_modules/
+sample-project/node_modules/
+
+# Logs
+logs/*.log
+
+# Runtime state
+kokuban.md
+queue/gijiroku.yaml
+queue/keijiban.yaml
+queue/room_requests.yaml
+queue/toshokan_queue.yaml
+queue/toshoshitsu_queue.yaml
+queue/reports/*.yaml
+queue/tasks/*.yaml
+
+# Local knowledge / private drafts
+backnumber/
+keijiban/
+nisshi/
+blog-*.md
+blog-sections/
+section-03-practice.md
+section-03-practice-revised.md
+sample-project/
+
+# tmux / local artifacts
+*.tmux.log

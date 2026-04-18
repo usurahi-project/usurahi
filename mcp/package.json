@@ -1,0 +1,11 @@
+{
+  "name": "usurahi-queue-server",
+  "version": "1.0.0",
+  "description": "薄氷キュー操作MCPサーバー",
+  "type": "module",
+  "main": "queue-server.js",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "js-yaml": "^4.1.0"
+  }
+}
