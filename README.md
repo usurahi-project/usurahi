@@ -59,7 +59,7 @@ brew install node tmux gum
 
 `claude` は別途インストールし、ログインも済ませておく。
 内部では [`scripts/claude-app.sh`](./scripts/claude-app.sh) を通して `claude` を呼ぶ。
-これは `ANTHROPIC_API_KEY` を外し、Claude App の Pro / Max 認証を優先するためのもの。
+これは内部起動時のラッパーとして使っている。
 
 ## セットアップ
 
@@ -363,4 +363,3 @@ X 投稿は `URL + excerpt` を主線にしておくと、課金なしでも安�
 摩耶花は `clubroom` の部員ではなく、`library` の独立オペレータです。
 
 内部で Claude Code を呼ぶ時は、`scripts/claude-app.sh` を経由します。
-これは `ANTHROPIC_API_KEY` を無効化して、Claude App の Pro / Max 認証を優先するためです。
