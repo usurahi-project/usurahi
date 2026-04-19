@@ -103,13 +103,39 @@ tmux attach -t clubroom
 - 活動記録: `activity-log/` と Obsidian の `薄氷/部室/活動記録/`
 - バックナンバー: `archive/` と Obsidian の `薄氷/図書館/薄氷バックナンバー/`
 
+## Repo と Obsidian の対応
+
+薄氷には 2 つの空間があります。
+
+- repo 側: 実装と運用を動かすための構造
+- Obsidian 側: 人が理解しやすいように世界観で整理した構造
+
+完全に同じ名前にする必要はありません。  
+大事なのは `名前` ではなく `役割` が対応していることです。
+
+| repo 側 | Obsidian 側 | 役割 |
+| --- | --- | --- |
+| `staffroom/` | `準備室/` | 使い方、設計、役割などの共有資料 |
+| `queue/room_requests.yaml` | `部室` まわりの依頼導線 | 正式依頼の入口 |
+| `blackboard.md` | `黒板` | 進行中の現在地 |
+| `queue/library_queue.yaml` / `library.sh` | `図書館/` | ナレッジの投入と整理 |
+| `noticeboard` / `queue/noticeboard.yaml` | `掲示板/` | 雑多メモや一次情報 |
+| `activity-log/` | `部室/活動記録/` | 活動の記録 |
+| `archive/` | `図書館/薄氷バックナンバー/` | 再利用する知見の保存 |
+
+基本ルールは次のとおりです。
+
+- repo は、初見の人が役割を読める名前を優先する
+- Obsidian は、人が思い出しやすい世界観の名前を優先する
+- 配布物としての骨格は repo に置き、体験としての表札は Obsidian に置く
+
 ## 文書案内
 
-- 職員室の案内: [職員室 / 職員室の案内](./staffroom/overview.md)
-- 詳しい使い方: [職員室 / 薄氷の使い方](./staffroom/how_to_use.md)
-- 世界観と役割: [職員室 / 薄氷の世界観と役割](./staffroom/world_and_roles.md)
-- 技術設計: [職員室 / 薄氷の技術設計](./staffroom/technical_design.md)
-- 職員室の入口: [staffroom/README.md](./staffroom/README.md)
+- 準備室の案内: [準備室 / 準備室の案内](./staffroom/overview.md)
+- 詳しい使い方: [準備室 / 薄氷の使い方](./staffroom/how_to_use.md)
+- 世界観と役割: [準備室 / 薄氷の世界観と役割](./staffroom/world_and_roles.md)
+- 技術設計: [準備室 / 薄氷の技術設計](./staffroom/technical_design.md)
+- 準備室の入口: [staffroom/README.md](./staffroom/README.md)
 
 ## 補足
 
