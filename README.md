@@ -14,55 +14,146 @@
 - 良いやり方だけをバックナンバーとして育てる
 - 図書室に記事やナレッジを取り込む
 
-## はじめ方
+## 実行環境
 
-### 1. 部活を起動する
+確認できている環境の目安:
+
+- OS: macOS 26.3.1 (build `25D771280a`)
+- マシン: MacBook Pro (`Mac16,8`)
+- CPU: Apple M4 Pro
+- コア数: 12 cores (`8 Performance + 4 Efficiency`)
+- メモリ: 48 GB
+- アーキテクチャ: `arm64`
+
+前提ツール:
+
+- `git`
+- `node` / `npm`
+- `tmux`
+- `claude` (Claude Code CLI)
+- `gum` は任意
+  - なくても動くが、`meeting.sh` や `library.sh` の表示は簡素になる
+
+想定している Node / npm:
+
+- `node`: `v24.3.0`
+- `npm`: `11.4.2`
+
+### 必要なツール
+
+最低限、次が通る状態にしておく。
 
 ```bash
-./meeting.sh -c
+git --version
+node --version
+npm --version
+tmux -V
+claude --version
 ```
 
-これは、状態を初期化してから部活を起動する一番わかりやすい始め方です。
-
-### 2. 正式依頼入口を使う
+macOS + Homebrew の例:
 
 ```bash
-./request.sh "sample-project の TODO CLI を改善したいです。"
+brew install node tmux gum
 ```
 
-背景も一緒に渡せます。
+`claude` は別途インストールし、ログインも済ませておく。
+内部では [`scripts/claude-app.sh`](./scripts/claude-app.sh) を通して `claude` を呼ぶ。
+これは `ANTHROPIC_API_KEY` を外し、Claude App の Pro / Max 認証を優先するためのもの。
+
+## セットアップ
+
+### 1. clone する
 
 ```bash
-./request.sh --request "sample-project の TODO CLI を改善したいです。" \
+git clone <repo-url>
+cd usurahi
+```
+
+### 2. 依存を入れる
+
+```bash
+npm install
+```
+
+### 3. 必要なら環境変数を置く
+
+```bash
+cp .env.example .env
+```
+
+`.env` は必須ではない。
+ただし Slack bridge や X 取得補助を使うなら設定する。
+
+- `X_BEARER_TOKEN`
+  - 任意
+  - X URL を `excerpt` なしで補助取得したい時だけ使う
+
+### 4. Claude / Codex 側で skill を使える状態にする
+
+`/kaigi` `/board` `/library` を使える状態で始める。
+必要なら skill の再読込やセッション再起動を行う。
+
+## 使い始め
+
+セットアップが終わったら、普段の入口は skill / slash command 側を使う。
+主線は次の3つ。
+
+- `/kaigi`
+- `/board`
+- `/library`
+
+## 最初の1件を流す
+
+最短で試すなら次の流れ。
+
+1. `/kaigi` を開く
+2. 依頼内容を入れる
+3. 必要なら背景を入れる
+4. 部会が始まる
+5. `clubroom` で進行を見る
+
+イメージ:
+
+```text
+/kaigi
+したい依頼はなんですか？
+> sample-project の TODO CLI を改善したいです。
+
+背景やメモがあれば書いてください。なければこのまま始めます。
+> 追加と一覧の流れが弱いです。
+```
+
+backend の動作確認を直接やりたい時は、次でも同じ流れを試せる。
+
+```bash
+bash ./kaigi.sh --request "sample-project の TODO CLI を改善したいです。" \
   --background "追加と一覧の流れが弱いです。"
 ```
 
-これは `queue/room_requests.yaml` に正式依頼を積む入口です。
+起きること:
 
-### 3. えるに話しかける
+- 必要なら backend 側で部会が起動する
+- 正式依頼が `queue/room_requests.yaml` に積まれる
+- 必要なら掲示板にも共有される
+- 最後に `clubroom` へ入る
+
+backend で部室に入りたくない時は `--no-attach` を付ける。
 
 ```bash
-tmux attach -t noticeboard
+bash ./kaigi.sh --request "sample-project の TODO CLI を改善したいです。" \
+  --background "追加と一覧の流れが弱いです。" \
+  --no-attach
 ```
 
-ここで、えるの受け答えを見たり、必要なら背景を補足したりします。
-`noticeboard` は会話窓口ではあるが、正式依頼の主線入口そのものではありません。
-
-例:
-
-```text
-sample-project の TODO CLI を改善したいです。
-いまは追加と一覧の流れが弱いので、使いやすくしたいです。
-```
-
-### 4. 部室を見る
+### 途中経過を見る
 
 ```bash
 tmux attach -t clubroom
 ```
 
-部員たちのやり取りと、黒板の現在値を見られます。
-現在の `clubroom` は 6 pane 構成です。
+部員たちのやり取りと、黒板の現在値を見られる。
+現在の `clubroom` は 6 pane 構成。
 
 - ハルヒ
 - 折木
@@ -71,7 +162,110 @@ tmux attach -t clubroom
 - える（部室表示）
 - 長門
 
-### 5. 必要なら途中で口を挟む
+### 掲示板を触る
+
+掲示板は「話す場所」ではなく、「貼る / 見る」場所。
+
+主線:
+
+1. `/board`
+2. メモを貼る、または貼られた内容を見る
+
+イメージ:
+
+```text
+/board
+貼る内容:
+この論点はあとで見返したい
+```
+
+backend を直接使うなら次。
+
+一覧:
+
+```bash
+bash ./board.sh list
+```
+
+貼る:
+
+```bash
+bash ./board.sh add "この論点はあとで見返したい"
+```
+
+### 図書室に本を入れる
+
+主線:
+
+1. `/library`
+2. 摩耶花の受付に入る
+3. 「本を入れる」を選ぶ
+4. URL と必要ならメモを渡す
+
+イメージ:
+
+```text
+/library
+摩耶花「なに？」
+1. 本を入れる
+2. 入っている本を見る
+3. 失敗した本を見る
+...
+```
+
+backend を直接使うなら次。
+
+摩耶花の受付から始める:
+
+```bash
+bash ./ribrary.sh
+```
+
+URL をそのまま渡す:
+
+```bash
+bash ./ribrary.sh "https://zenn.dev/example/articles/abc"
+```
+
+起きること:
+
+- 摩耶花が次アクションを聞く
+- 主線は「本を入れる」
+- 必要ならメモ、保存意図、X の抜粋を聞く
+- 実処理は `library.sh` が担当する
+
+## 旧入口と backend
+
+通常は `/kaigi` `/board` `/library` を表の入口として使う。
+次はその backend / 実装入口。
+
+- `bash ./kaigi.sh`
+- `bash ./board.sh`
+- `bash ./ribrary.sh`
+
+従来の backend / 運用入口もそのまま残している。
+
+- `./meeting.sh`
+- `./request.sh`
+- `./library.sh`
+- `./scripts/notify.sh`
+
+手で backend を起動したい時だけ、次を使う。
+
+```bash
+./meeting.sh -a
+```
+
+これは `noticeboard` と `clubroom` の tmux セッションを作り、部員を最初から起動する運用コマンド。
+
+正式依頼だけを直接積みたい時は、今でも `request.sh` を使える。
+
+```text
+./request.sh "sample-project の TODO CLI を改善したいです。"
+./request.sh --request "sample-project の TODO CLI を改善したいです。" --background "追加と一覧の流れが弱いです。"
+```
+
+必要なら途中で口を挟む:
 
 ```bash
 ./scripts/notify.sh kyon "その運用リスクは気になる"
@@ -80,10 +274,16 @@ tmux attach -t clubroom
 ## よく使うコマンド
 
 ```bash
-./meeting.sh -c                                   # 初期化して起動
 ./meeting.sh -a                                   # 最初から全員起動
+./meeting.sh -c                                   # 初期化して起動
 ./meeting.sh -w                                   # 後から部員を呼ぶ
 ./meeting.sh -k                                   # 終了
+bash ./kaigi.sh                                   # 依頼を持ち込んで部会を始める
+bash ./kaigi.sh "依頼本文"                        # 引数付きで依頼する
+bash ./board.sh list                              # 掲示板を見る
+bash ./board.sh add "メモ本文"                    # 掲示板に貼る
+bash ./ribrary.sh                                 # 摩耶花の受付から図書室を触る
+bash ./ribrary.sh <url>                           # URL を本として入れる
 ./request.sh "依頼本文"                           # 正式依頼入口
 ./request.sh -l                                   # 正式依頼一覧
 ./library.sh add <url> --note "ひとこと"          # 図書室カウンターへ追加
@@ -139,8 +339,8 @@ tmux attach -t clubroom
 
 ## 補足
 
-いまは `request.sh` が正式依頼入口です。
-えるへの自然文は世界観として残しつつ、状態遷移の入口は薄いCLIで安定させています。
+いまは、表の入口を `kaigi / board / library` に寄せつつ、backend として `kaigi.sh / board.sh / ribrary.sh / request.sh / library.sh / meeting.sh` を残している。
+世界観の入口と、状態遷移の安定した入口を分けるためである。
 
 図書室は `add -> list -> run -> retry/refetch` の流れで回せます。
 Zenn / Qiita / 公式 docs は URL のまま主線に乗せられます。
@@ -150,11 +350,12 @@ X 投稿は `URL + excerpt` を主線にしておくと、課金なしでも安�
 - `retry`: 取得済み本文は残し、要約だけやり直す
 - `refetch`: 取得済み本文も捨てて、材料から取り直す
 
-入口は複数に見えても、主線は絞っています。
+入口は複数に見えても、主線は絞っている。
 
-- 正式依頼: `./request.sh`
-- 図書室投入: `./library.sh add`
-- `noticeboard` はメモ置き場で、正式依頼入口ではない
+- 部会開始: `/kaigi`
+- 掲示板: `/board`
+- 図書室受付: `/library`
+- `noticeboard` はメモ置き場であり、会話窓口ではない
 - Slack を使う場合も、主線入口へ流し込む補助経路として扱います
 
 図書室では、摩耶花に処理全体を背負わせません。
