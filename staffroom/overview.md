@@ -6,6 +6,7 @@
 - [薄氷の使い方](./how_to_use.md)
 - [薄氷の世界観と役割](./world_and_roles.md)
 - [薄氷の技術設計](./technical_design.md)
+- [薄氷の文章ガイド](./writing_guide.md)
 
 ここは、薄氷そのものを運営するための資料を置く場所です。
 

@@ -17,6 +17,7 @@
 - [薄氷の使い方](./how_to_use.md)
 - [薄氷の世界観と役割](./world_and_roles.md)
 - [薄氷の技術設計](./technical_design.md)
+- [薄氷の文章ガイド](./writing_guide.md)
 - [薄氷の命名原則](./naming_principles.md)
 
 ## 置かないもの
