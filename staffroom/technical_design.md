@@ -3,7 +3,7 @@
 ## 関連
 
 - [README](../README.md)
-- [職員室の案内](./overview.md)
+- [準備室の案内](./overview.md)
 - [薄氷の使い方](./how_to_use.md)
 - [薄氷の世界観と役割](./world_and_roles.md)
 
@@ -317,7 +317,7 @@ Slack など外部経路を残す場合も、図書室では即時処理しな�
 ## 今後の拡張候補
 
 - 専用の依頼CLI
-- 職員室ノートの Obsidian 自動保存
+- 準備室ノートの Obsidian 自動保存
 - アーカイブから skill / instruction への昇格フローの明文化
 
 ## 外部連携

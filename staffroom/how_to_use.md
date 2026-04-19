@@ -3,7 +3,7 @@
 ## 関連
 
 - [README](../README.md)
-- [職員室の案内](./overview.md)
+- [準備室の案内](./overview.md)
 - [薄氷の世界観と役割](./world_and_roles.md)
 - [薄氷の技術設計](./technical_design.md)
 

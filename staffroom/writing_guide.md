@@ -2,7 +2,7 @@
 
 ## 関連
 
-- [職員室の案内](./overview.md)
+- [準備室の案内](./overview.md)
 - [薄氷の使い方](./how_to_use.md)
 - [薄氷の技術設計](./technical_design.md)
 

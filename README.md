@@ -115,7 +115,7 @@ tmux attach -t clubroom
 
 | repo 側 | Obsidian 側 | 役割 |
 | --- | --- | --- |
-| `staffroom/` | `職員室/` | 使い方、設計、役割などの共有資料 |
+| `staffroom/` | `準備室/` | 使い方、設計、役割などの共有資料 |
 | `queue/room_requests.yaml` | `部室` まわりの依頼導線 | 正式依頼の入口 |
 | `blackboard.md` | `黒板` | 進行中の現在地 |
 | `queue/library_queue.yaml` / `library.sh` | `図書館/` | ナレッジの投入と整理 |
@@ -131,11 +131,11 @@ tmux attach -t clubroom
 
 ## 文書案内
 
-- 職員室の案内: [職員室 / 職員室の案内](./staffroom/overview.md)
-- 詳しい使い方: [職員室 / 薄氷の使い方](./staffroom/how_to_use.md)
-- 世界観と役割: [職員室 / 薄氷の世界観と役割](./staffroom/world_and_roles.md)
-- 技術設計: [職員室 / 薄氷の技術設計](./staffroom/technical_design.md)
-- 職員室の入口: [staffroom/README.md](./staffroom/README.md)
+- 準備室の案内: [準備室 / 準備室の案内](./staffroom/overview.md)
+- 詳しい使い方: [準備室 / 薄氷の使い方](./staffroom/how_to_use.md)
+- 世界観と役割: [準備室 / 薄氷の世界観と役割](./staffroom/world_and_roles.md)
+- 技術設計: [準備室 / 薄氷の技術設計](./staffroom/technical_design.md)
+- 準備室の入口: [staffroom/README.md](./staffroom/README.md)
 
 ## 補足
 
