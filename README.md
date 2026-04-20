@@ -21,12 +21,10 @@
 
 確認できている環境の目安:
 
-- OS: macOS 26.3.1 (build `25D771280a`)
-- マシン: MacBook Pro (`Mac16,8`)
-- CPU: Apple M4 Pro
-- コア数: 12 cores (`8 Performance + 4 Efficiency`)
-- メモリ: 48 GB
+- OS: macOS
 - アーキテクチャ: `arm64`
+- CPU: Apple Silicon
+- メモリ: 48 GB
 
 前提ツール:
 
