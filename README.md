@@ -93,6 +93,7 @@ tmux attach -t clubroom
 ./library.sh --failed                             # 失敗したURL一覧
 ./library.sh retry --failed                       # 失敗したURLを再試行へ戻す
 ./library.sh refetch --failed                     # 失敗したURLを再取得前提で戻す
+npm run slack:bridge                              # 図書室 Slack Bridge を起動
 ```
 
 ## 情報はどこに残るか
@@ -163,3 +164,57 @@ X 投稿は `URL + excerpt` を主線にしておくと、課金なしでも安�
 
 内部で Claude Code を呼ぶ時は、`scripts/claude-app.sh` を経由します。
 これは `ANTHROPIC_API_KEY` を無効化して、Claude App の Pro / Max 認証を優先するためです。
+
+## Slack 連携
+
+図書室には Slack Bridge があり、Slack からの入力を `library.sh add` に正規化して流し込めます。
+Slack は主線そのものではなく、図書室カウンターへの補助入口として扱います。
+
+### できること
+
+- URL つきメッセージに `:tosyositsu:` リアクションを付けて投入
+- `@薄氷図書室 <url>` で URL を投入
+- `@薄氷図書室 TypeScript 調べて` で Obsidian 内のナレッジ検索
+
+### 事前準備
+
+1. `.env.example` を `.env` にコピーする
+2. Slack App を作る
+3. Bot Token と App-Level Token を `.env` に入れる
+4. 図書室を使うチャンネル ID を `.env` の `SLACK_CHANNEL_ID` に入れる
+5. 必要ならリアクション絵文字名を `TRIGGER_EMOJI` で変える
+
+```bash
+cp .env.example .env
+```
+
+`.env` の最低限はこれです。
+
+```dotenv
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_APP_TOKEN=xapp-...
+SLACK_CHANNEL_ID=C0123456789
+TRIGGER_EMOJI=tosyositsu
+```
+
+### Slack App 側の設定
+
+- Socket Mode: 有効
+- Event Subscriptions: `app_mention`, `reaction_added`
+- Bot Token Scopes: `app_mentions:read`, `channels:history`, `channels:read`, `chat:write`, `reactions:read`
+
+使うチャンネルが private channel の場合は、対応する履歴参照スコープと、そのチャンネルへの bot 招待も必要です。
+
+### 起動
+
+```bash
+npm run slack:bridge
+```
+
+起動後の入口は次です。
+
+- `:tosyositsu:` を URL つき投稿に付ける
+- `@薄氷図書室 https://example.com/article`
+- `@薄氷図書室 TypeScript 調べて`
+
+X 投稿は Slack からは主線に乗せません。これは既存設計どおりで、`./library.sh add <x-url> --excerpt "抜粋本文"` を使います。

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
@@ -14,6 +15,8 @@ function parseArgs(argv) {
   let note = "";
   let intent = "";
   let excerpt = "";
+  let slackChannel = "";
+  let slackThreadTs = "";
 
   while (args.length > 0) {
     const token = args.shift();
@@ -37,6 +40,16 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (token === "--slack-channel") {
+      slackChannel = args.shift() || "";
+      continue;
+    }
+
+    if (token === "--slack-thread-ts") {
+      slackThreadTs = args.shift() || "";
+      continue;
+    }
+
     throw new Error(`unknown argument: ${token}`);
   }
 
@@ -48,7 +61,7 @@ function parseArgs(argv) {
     throw new Error("intent must be one of: interesting, try-soon, keep-for-later");
   }
 
-  return { url, note, intent, excerpt };
+  return { url, note, intent, excerpt, slackChannel, slackThreadTs };
 }
 
 function now() {
@@ -143,7 +156,7 @@ async function fetchXPost(postId) {
 }
 
 async function main() {
-  const { url, note, intent, excerpt } = parseArgs(process.argv.slice(2));
+  const { url, note, intent, excerpt, slackChannel, slackThreadTs } = parseArgs(process.argv.slice(2));
   const queue = loadQueue();
   const items = Array.isArray(queue.urls) ? queue.urls : [];
 
@@ -179,6 +192,14 @@ async function main() {
     },
     error: null,
   };
+
+  if (slackChannel) {
+    item.slack = {
+      channel: slackChannel,
+      thread_ts: slackThreadTs || "",
+      notified_at: "",
+    };
+  }
 
   const xMeta = extractXMeta(url);
   if (xMeta) {
