@@ -83,6 +83,13 @@ function updateExistingItem(items, url, patch) {
   if (!item) return null;
 
   for (const [key, value] of Object.entries(patch)) {
+    if (key === "slack" && value && typeof value === "object") {
+      item.slack = {
+        ...(item.slack || {}),
+        ...value,
+      };
+      continue;
+    }
     if (value !== "") {
       item[key] = value;
     }
@@ -165,7 +172,12 @@ async function main() {
 
   const duplicate = items.find((item) => item.url === url && item.status === "pending");
   if (duplicate) {
-    const updated = updateExistingItem(items, url, { note, intent, excerpt });
+    const updated = updateExistingItem(items, url, {
+      note,
+      intent,
+      excerpt,
+      slack: slackChannel ? { channel: slackChannel, thread_ts: slackThreadTs || "" } : null,
+    });
     saveQueue(queue);
 
     const lines = [`⚠ すでにカウンターにある: ${url}`];

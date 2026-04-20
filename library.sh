@@ -13,6 +13,8 @@ set -euo pipefail
 
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 QUEUE_FILE="$BASEDIR/queue/library_queue.yaml"
+RUN_LOCK_DIR="$BASEDIR/queue/.library-run.lock"
+CLAUDE_APP_SH="$BASEDIR/scripts/claude-app.sh"
 
 # PATH にhomebrewを追加（launchd経由対応）
 export PATH="/opt/homebrew/bin:$PATH"
@@ -70,8 +72,12 @@ check_prerequisites() {
 
 check_run_prerequisites() {
     check_prerequisites
-    if ! command -v claude &>/dev/null; then
-        error "claude (Claude Code CLI) がインストールされていません"
+    if [[ ! -x "$CLAUDE_APP_SH" ]]; then
+        error "scripts/claude-app.sh を実行できません"
+        exit 1
+    fi
+    if ! "$CLAUDE_APP_SH" --version >/dev/null 2>&1; then
+        error "claude (Claude Code CLI) を起動できません"
         exit 1
     fi
 }
@@ -258,6 +264,14 @@ check_bukatsu_active() {
 # --- 図書室処理 ---
 run_mayaka() {
     check_run_prerequisites
+
+    if ! mkdir "$RUN_LOCK_DIR" 2>/dev/null; then
+        echo ""
+        maya "いま整理を回している最中よ。終わるまで少し待ってなさい"
+        echo ""
+        exit 0
+    fi
+    trap 'rmdir "$RUN_LOCK_DIR" 2>/dev/null || true' EXIT
 
     # 未処理件数チェック
     local pending_count
