@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
@@ -15,6 +16,7 @@ const OBSIDIAN_VAULT = path.join(process.env.HOME || "", "Documents", "Obsidian 
 const LIBRARY_DIR = path.join(OBSIDIAN_VAULT, "図書館", "開架");
 const MAX_EXCERPT_CHARS = 2400;
 const CURL_TIMEOUT_SEC = 20;
+const SLACK_API_URL = "https://slack.com/api/chat.postMessage";
 const RELATED_TOPIC_VOCAB = [
   "長期運用",
   "セッション管理",
@@ -99,6 +101,85 @@ function ensurePipelineFields(item) {
   if (!Array.isArray(item.draft.related_topics)) item.draft.related_topics = [];
   if (!Array.isArray(item.draft.next_read)) item.draft.next_read = [];
   if (!("error" in item)) item.error = null;
+  if (item.slack && typeof item.slack === "object") {
+    if (!("channel" in item.slack)) item.slack.channel = "";
+    if (!("thread_ts" in item.slack)) item.slack.thread_ts = "";
+    if (!("notified_at" in item.slack)) item.slack.notified_at = "";
+  }
+}
+
+async function postSlackUpdate(item, text) {
+  if (!item.slack?.channel || !process.env.SLACK_BOT_TOKEN) {
+    return false;
+  }
+
+  const payload = {
+    channel: item.slack.channel,
+    text,
+    unfurl_links: false,
+    unfurl_media: false,
+  };
+
+  if (item.slack.thread_ts) {
+    payload.thread_ts = item.slack.thread_ts;
+  }
+
+  const response = await fetch(SLACK_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    throw new Error(result.error || `HTTP ${response.status}`);
+  }
+
+  item.slack.notified_at = now();
+  item.slack.last_message_ts = result.ts || "";
+  return true;
+}
+
+async function notifySlackResult(item) {
+  if (!item.slack?.channel) {
+    return;
+  }
+
+  let text = "";
+  if (item.status === "done" && item.duplicate_of) {
+    text = [
+      "見たことあると思ったら、やっぱり前に入っていたわね。",
+      item.title ? `題名は「${item.title}」よ。` : "",
+      `置いてある場所は ${item.saved_path || item.duplicate_of} よ。`,
+      "同じ本を増やすより、今あるものを使ったほうがいいわ。",
+    ].filter(Boolean).join("\n");
+  } else if (item.status === "done") {
+    text = [
+      item.title ? `片づいたわ。「${item.title}」で入れておいたわね。` : "片づいたわ。棚に入れておいたわね。",
+      item.summary ? `内容はこんな感じよ。\n${item.summary}` : "",
+      item.save_value ? `残しておく意味は、${item.save_value}` : "",
+      item.saved_path ? `置き場所は ${item.saved_path} よ。` : "",
+      item.use_case ? `薄氷で使うなら、${item.use_case} わね。` : "",
+    ].filter(Boolean).join("\n");
+  } else if (item.status === "failed") {
+    const nextAction = suggestAction(item) === "refetch" ? "取り直してから、もう一回持ってきてちょうだい。" : "少し置いてから、もう一回見せてちょうだい。";
+    text = [
+      "手を付けたんだけど、ここで詰まったわ。",
+      item.error?.message ? `${item.error.message}` : "",
+      nextAction,
+    ].filter(Boolean).join("\n");
+  }
+
+  if (!text) return;
+
+  try {
+    await postSlackUpdate(item, text);
+  } catch (error) {
+    console.error(`Slack 通知に失敗: ${item.url} / ${error.message}`);
+  }
 }
 
 function truncateText(text, limit = MAX_EXCERPT_CHARS) {
@@ -563,6 +644,7 @@ async function main() {
     try {
       const message = await processItem(item);
       console.log(message);
+      await notifySlackResult(item);
       doneCount += 1;
     } catch (error) {
       const failedStage = item.stage || "unknown";
@@ -576,6 +658,7 @@ async function main() {
         stage: failedStage,
         message: error.message,
       });
+      await notifySlackResult(item);
       failedCount += 1;
     }
     saveQueue(data);

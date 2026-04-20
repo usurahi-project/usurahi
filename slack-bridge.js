@@ -32,6 +32,16 @@ const OBSIDIAN_FOLDERS = {
   library: "図書館/開架",
 };
 
+function requireEnv(name) {
+  if (process.env[name]) {
+    return;
+  }
+
+  throw new Error(
+    `${name} is not set. Copy .env.example to .env and fill the Slack app values.`
+  );
+}
+
 function isXUrl(url) {
   try {
     const parsed = new URL(url);
@@ -59,7 +69,7 @@ function extractNote(text, urls) {
   for (const url of urls) {
     note = note.replace(url, "");
   }
-  note = note.replace(/<[^>]+>/g, "").trim();
+  note = note.replace(/<[^>]*>/g, "").trim();
   return note || null;
 }
 
@@ -69,6 +79,34 @@ function stripAnsi(str) {
     /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
     ""
   );
+}
+
+function formatQueueReply(url, output) {
+  const cleaned = String(output || "").trim();
+
+  if (cleaned.includes("すでにカウンターにある")) {
+    const statusMatch = cleaned.match(/状態:\s*(.+)/);
+    return [
+      "その本、前にも預かってるわよ。",
+      statusMatch ? `いまの様子は ${statusMatch[1]} よ。` : "",
+      "あとは整理の順番を待っていればいいわ。",
+    ].filter(Boolean).join("\n");
+  }
+
+  if (cleaned.includes("図書室カウンターに追加")) {
+    const noteMatch = cleaned.match(/ひとこと:\s*(.+)/);
+    return [
+      "預かったわ。棚に入れる前に、ちゃんと目を通しておくわね。",
+      noteMatch ? `ひとことも見ておくわ。${noteMatch[1]}` : "",
+      "整理が済んだら、このスレッドに戻るわね。",
+    ].filter(Boolean).join("\n");
+  }
+
+  if (cleaned) {
+    return cleaned;
+  }
+
+  return "うまく受け取れなかったわ。もう一回見せてちょうだい。";
 }
 
 // --- Obsidian search ---
@@ -117,13 +155,13 @@ function extractSearchQuery(text) {
 }
 
 // --- 図書室の主線入口へ投入 ---
-function enqueueLibrary(url, note) {
+function enqueueLibrary(url, note, slackChannel, slackThreadTs) {
   return new Promise((resolve) => {
     if (isXUrl(url)) {
       resolve([
-        `⚠ ${url}`,
-        "   X 投稿は Slack からは主線に乗せないわ。",
-        "   `./library.sh add <x-url> --excerpt \"抜粋本文\"` で図書室カウンターに入れて。",
+        `${url}`,
+        "X 投稿は Slack からは主線に乗せないわ。",
+        "`./library.sh add <x-url> --excerpt \"抜粋本文\"` で図書室カウンターに入れて。",
       ].join("\n"));
       return;
     }
@@ -132,17 +170,28 @@ function enqueueLibrary(url, note) {
     if (note) {
       args.push("--note", note);
     }
+    if (slackChannel) {
+      args.push("--slack-channel", slackChannel);
+    }
+    if (slackThreadTs) {
+      args.push("--slack-thread-ts", slackThreadTs);
+    }
     execFile(
       path.join(__dirname, "library.sh"),
       args,
       { cwd: __dirname, timeout: 30000, maxBuffer: 1024 * 1024, env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` } },
-      (err, stdout) => {
+      (err, stdout, stderr) => {
         const output = stripAnsi(stdout || "").trim();
+        const errorOutput = stripAnsi(stderr || "").trim();
         if (err) {
-          console.error("enqueueLibrary failed:", err.message);
-          resolve(output || `❌ ${url}\n   理由: 図書室カウンターへの投入に失敗したわ。`);
+          console.error("enqueueLibrary failed:", err.message, errorOutput);
+          resolve(
+            output ||
+              errorOutput ||
+              `${url}\n理由: 図書室カウンターへの投入に失敗したわ。`
+          );
         } else {
-          resolve(output || `✓ 図書室カウンターに追加: ${url}`);
+          resolve(formatQueueReply(url, output));
         }
       }
     );
@@ -153,6 +202,11 @@ function enqueueLibrary(url, note) {
 // Reaction handler: :tosyositsu: → 主線入口へ投入
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 app.event("reaction_added", async ({ event, client }) => {
+  console.log("reaction_added received", {
+    reaction: event.reaction,
+    channel: event.item?.channel,
+    ts: event.item?.ts,
+  });
   if (event.reaction !== TRIGGER_EMOJI) return;
   if (event.item.channel !== CHANNEL_ID) return;
 
@@ -180,14 +234,14 @@ app.event("reaction_added", async ({ event, client }) => {
     }
 
     const note = extractNote(text, urls);
-    await client.chat.postMessage({
-      channel: CHANNEL_ID,
-      text: `${urls.length}件ね。図書室カウンターに回すわ。`,
-      thread_ts: event.item.ts,
-    });
+      await client.chat.postMessage({
+        channel: CHANNEL_ID,
+        text: `${urls.length}件ね。預かるわ。少し待ってなさい。`,
+        thread_ts: event.item.ts,
+      });
 
     for (const url of urls) {
-      const processed = await enqueueLibrary(url, note);
+      const processed = await enqueueLibrary(url, note, CHANNEL_ID, event.item.ts);
       await client.chat.postMessage({
         channel: CHANNEL_ID,
         text: processed,
@@ -203,6 +257,12 @@ app.event("reaction_added", async ({ event, client }) => {
 // Mention handler: @薄氷図書室 → 摩耶花対応
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 app.event("app_mention", async ({ event, client }) => {
+  console.log("app_mention received", {
+    channel: event.channel,
+    ts: event.ts,
+    thread_ts: event.thread_ts || null,
+    text: event.text,
+  });
   const text = event.text.replace(/<@[A-Z0-9]+>/gi, "").trim();
   const thread_ts = event.thread_ts || event.ts;
 
@@ -214,12 +274,12 @@ app.event("app_mention", async ({ event, client }) => {
       const note = extractNote(text, urls);
       await client.chat.postMessage({
         channel: event.channel,
-        text: `${urls.length}件ね。図書室カウンターに回すわ。`,
+        text: `${urls.length}件ね。預かるわ。少し待ってなさい。`,
         thread_ts,
       });
 
       for (const url of urls) {
-        const result = await enqueueLibrary(url, note);
+        const result = await enqueueLibrary(url, note, event.channel, thread_ts);
         await client.chat.postMessage({
           channel: event.channel,
           text: result,
@@ -288,8 +348,16 @@ app.event("app_mention", async ({ event, client }) => {
   }
 });
 
+app.error((error) => {
+  console.error("slack app error:", error);
+});
+
 // --- 起動 ---
 (async () => {
+  requireEnv("SLACK_BOT_TOKEN");
+  requireEnv("SLACK_APP_TOKEN");
+  requireEnv("SLACK_CHANNEL_ID");
+
   await app.start();
   console.log("📚 薄氷図書室 Slack Bridge 起動");
   console.log(`   チャンネル: ${CHANNEL_ID}`);

@@ -64,16 +64,20 @@ show_library_door() {
 
 # --- 前提条件チェック ---
 check_prerequisites() {
-    if ! command -v claude &>/dev/null; then
-        error "claude (Claude Code CLI) がインストールされていません"
-        exit 1
-    fi
     if ! command -v node &>/dev/null; then
         error "node がインストールされていません"
         exit 1
     fi
     if [[ ! -f "$QUEUE_FILE" ]]; then
         echo "urls: []" > "$QUEUE_FILE"
+    fi
+}
+
+check_run_prerequisites() {
+    check_prerequisites
+    if ! command -v claude &>/dev/null; then
+        error "claude (Claude Code CLI) がインストールされていません"
+        exit 1
     fi
 }
 
@@ -258,7 +262,7 @@ check_bukatsu_active() {
 
 # --- 図書室処理 ---
 run_mayaka() {
-    check_prerequisites
+    check_run_prerequisites
 
     # 未処理件数チェック
     local pending_count

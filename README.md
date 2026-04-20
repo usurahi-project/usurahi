@@ -234,3 +234,83 @@ bash ./ribrary.sh <url>                           # URL を本として入れる
 - 世界観と役割: [準備室 / 薄氷の世界観と役割](./staffroom/world_and_roles.md)
 - 技術設計: [準備室 / 薄氷の技術設計](./staffroom/technical_design.md)
 - 準備室の入口: [staffroom/README.md](./staffroom/README.md)
+## 補足
+
+いまは `request.sh` が正式依頼入口です。
+えるへの自然文は世界観として残しつつ、状態遷移の入口は薄いCLIで安定させています。
+
+図書室は `add -> list -> run -> retry/refetch` の流れで回せます。
+Zenn / Qiita / 公式 docs は URL のまま主線に乗せられます。
+X 投稿は `URL + excerpt` を主線にしておくと、課金なしでも安定して回せます。
+`X_BEARER_TOKEN` は任意の補助機能です。
+
+- `retry`: 取得済み本文は残し、要約だけやり直す
+- `refetch`: 取得済み本文も捨てて、材料から取り直す
+
+入口は複数に見えても、主線は絞っています。
+
+- 正式依頼: `./request.sh`
+- 図書室投入: `./library.sh add`
+- `noticeboard` はメモ置き場で、正式依頼入口ではない
+- Slack を使う場合も、主線入口へ流し込む補助経路として扱います
+
+図書室では、摩耶花に処理全体を背負わせません。
+`library.sh` が進行と保存を握り、摩耶花はタイトル・要約・タグ・一言に集中します。
+摩耶花は `clubroom` の部員ではなく、`library` の独立オペレータです。
+
+内部で Claude Code を呼ぶ時は、`scripts/claude-app.sh` を経由します。
+これは `ANTHROPIC_API_KEY` を無効化して、Claude App の Pro / Max 認証を優先するためです。
+
+## Slack 連携
+
+図書室には Slack Bridge があり、Slack からの入力を `library.sh add` に正規化して流し込めます。
+Slack は主線そのものではなく、図書室カウンターへの補助入口として扱います。
+
+### できること
+
+- URL つきメッセージに `:tosyositsu:` リアクションを付けて投入
+- `@薄氷図書室 <url>` で URL を投入
+- `@薄氷図書室 TypeScript 調べて` で Obsidian 内のナレッジ検索
+
+### 事前準備
+
+1. `.env.example` を `.env` にコピーする
+2. Slack App を作る
+3. Bot Token と App-Level Token を `.env` に入れる
+4. 図書室を使うチャンネル ID を `.env` の `SLACK_CHANNEL_ID` に入れる
+5. 必要ならリアクション絵文字名を `TRIGGER_EMOJI` で変える
+
+```bash
+cp .env.example .env
+```
+
+`.env` の最低限はこれです。
+
+```dotenv
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_APP_TOKEN=xapp-...
+SLACK_CHANNEL_ID=C0123456789
+TRIGGER_EMOJI=tosyositsu
+```
+
+### Slack App 側の設定
+
+- Socket Mode: 有効
+- Event Subscriptions: `app_mention`, `reaction_added`
+- Bot Token Scopes: `app_mentions:read`, `channels:history`, `channels:read`, `chat:write`, `reactions:read`
+
+使うチャンネルが private channel の場合は、対応する履歴参照スコープと、そのチャンネルへの bot 招待も必要です。
+
+### 起動
+
+```bash
+npm run slack:bridge
+```
+
+起動後の入口は次です。
+
+- `:tosyositsu:` を URL つき投稿に付ける
+- `@薄氷図書室 https://example.com/article`
+- `@薄氷図書室 TypeScript 調べて`
+
+X 投稿は Slack からは主線に乗せません。これは既存設計どおりで、`./library.sh add <x-url> --excerpt "抜粋本文"` を使います。
