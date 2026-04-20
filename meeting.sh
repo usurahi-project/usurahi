@@ -293,10 +293,10 @@ launch_claude() {
     launch_agent "${NOTICEBOARD_SESSION}.0" "claude-opus-4-6" \
         "$BASEDIR/instructions/eru_boot.txt" "える"
 
-    sleep 5  # Opus→Opus: レート制限対策で長めに
+    sleep 3
 
-    # ハルヒ（Opus）— clubroom pane 0
-    launch_agent "${CLUBROOM_SESSION}.0" "claude-opus-4-6" \
+    # ハルヒ（Sonnet）— clubroom pane 0
+    launch_agent "${CLUBROOM_SESSION}.0" "claude-sonnet-4-5-20250929" \
         "$BASEDIR/instructions/haruhi_boot.txt" "ハルヒ"
 
     echo ""
@@ -390,10 +390,10 @@ launch_workers() {
 
     sleep 3
 
-    sleep 5  # Sonnet→Opus
+    sleep 3
 
-    # 長門（Opus）— clubroom pane 5
-    launch_agent "${CLUBROOM_SESSION}.5" "claude-opus-4-6" \
+    # 長門（Sonnet）— clubroom pane 5
+    launch_agent "${CLUBROOM_SESSION}.5" "claude-sonnet-4-5-20250929" \
         "$BASEDIR/instructions/nagato_boot.txt" "長門"
 
     echo ""

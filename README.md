@@ -120,17 +120,10 @@ export OBSIDIAN_USURAHI_DIR="$HOME/path/to/your/vault/薄氷"
 
 ## 使い方
 
-### 依頼する
+### 会議
 
-最短で試すなら次の流れ。
-
-1. `/kaigi` を開く
-2. 依頼内容を入れる
-3. 必要なら背景を入れる
-4. 部会が始まる
-5. `clubroom` で進行を見る
-
-イメージ:
+メインの入口は `/kaigi` です。
+依頼を持ち込むと会議が始まり、部として結論を返します。
 
 ```text
 /kaigi
@@ -141,38 +134,16 @@ export OBSIDIAN_USURAHI_DIR="$HOME/path/to/your/vault/薄氷"
 > 追加と一覧の流れが弱いです。
 ```
 
-起きること:
-
-- 部会が始まる
-- 進行は `clubroom` で見られる
-- 必要なら途中で判断や補足を返せる
-
-### 進行を見る
+会議が始まると、進行は `clubroom` で見られます。
 
 ```bash
 tmux attach -t clubroom
 ```
 
-部員たちのやり取りと、黒板の現在値を見られる。
-現在の `clubroom` は 6 pane 構成。
+### 掲示板
 
-- ハルヒ
-- 折木
-- 黒板
-- キョン
-- える（部室表示）
-- 長門
-
-### 掲示板を使う
-
-掲示板は「話す場所」ではなく、「貼る / 見る」場所。
-
-主線:
-
-1. `/board`
-2. メモを貼る、または貼られた内容を見る
-
-イメージ:
+`/board` はアイデアやメモの置き場です。
+突発的に思いついたものや、次の議題に上げたいものを貼っておく場所で、学校の掲示板に近いイメージです。
 
 ```text
 /board
@@ -180,28 +151,18 @@ tmux attach -t clubroom
 この論点はあとで見返したい
 ```
 
-一覧:
+CLI で直接使うなら:
 
 ```bash
 bash ./board.sh list
-```
-
-貼る:
-
-```bash
 bash ./board.sh add "この論点はあとで見返したい"
 ```
 
-### 図書室を使う
+### 図書館
 
-主線:
-
-1. `/library`
-2. 摩耶花の受付に入る
-3. 「本を入れる」を選ぶ
-4. URL と必要ならメモを渡す
-
-イメージ:
+`/library` はナレッジ置き場です。
+記事や URL を取り込み、あとで参照できる形で残します。
+その場で消えるメモではなく、後から読み返したい知識を置いておく場所です。
 
 ```text
 /library
@@ -212,114 +173,9 @@ bash ./board.sh add "この論点はあとで見返したい"
 ...
 ```
 
-摩耶花の受付から始める:
+CLI で直接使うなら:
 
 ```bash
 bash ./ribrary.sh
-```
-
-URL をそのまま渡す:
-
-```bash
 bash ./ribrary.sh "https://zenn.dev/example/articles/abc"
 ```
-
-起きること:
-
-- 摩耶花が次アクションを聞く
-- 主線は「本を入れる」
-- 必要ならメモ、保存意図、X の抜粋を聞く
-
-## 補助コマンド
-
-```bash
-./meeting.sh -a                                   # 部活を起動する
-./meeting.sh -k                                   # 終了する
-tmux attach -t clubroom                           # 部室を見る
-bash ./board.sh list                              # 掲示板を見る
-bash ./board.sh add "メモ本文"                    # 掲示板に貼る
-bash ./ribrary.sh                                 # 摩耶花の受付から図書室を使う
-bash ./ribrary.sh <url>                           # URL を本として入れる
-```
-
-## 補足
-
-いまは `request.sh` が正式依頼入口です。
-えるへの自然文は世界観として残しつつ、状態遷移の入口は薄いCLIで安定させています。
-
-図書室は `add -> list -> run` の流れで回せます。
-Zenn / Qiita / 公式 docs は URL のまま主線に乗せられます。
-X 投稿は `URL + excerpt` を主線にしておくと、課金なしでも安定して回せます。
-`X_BEARER_TOKEN` は任意の補助機能です。
-
-整理が終わった本や、途中で詰まった本はキューに残しません。
-途中でうまくいかなかった時は、`retry/refetch` より URL をもう一度送る運用に寄せています。
-
-入口は複数に見えても、主線は絞っています。
-
-- 正式依頼: `./request.sh`
-- 図書室投入: `./library.sh add`
-- `noticeboard` はメモ置き場で、正式依頼入口ではない
-- Slack を使う場合も、主線入口へ流し込む補助経路として扱います
-
-図書室では、摩耶花に処理全体を背負わせません。
-`library.sh` が進行と保存を握り、摩耶花はタイトル・要約・タグ・一言に集中します。
-摩耶花は `clubroom` の部員ではなく、`library` の独立オペレータです。
-
-内部で Claude Code を呼ぶ時は、`scripts/claude-app.sh` を経由します。
-これは `ANTHROPIC_API_KEY` を無効化して、Claude App の Pro / Max 認証を優先するためです。
-
-## Slack 連携
-
-図書室には Slack Bridge があり、Slack からの入力を `library.sh add` に正規化して流し込めます。
-Slack は主線そのものではなく、図書室カウンターへの補助入口として扱います。
-
-### できること
-
-- URL つきメッセージに `:tosyositsu:` リアクションを付けて投入
-- `@薄氷図書室 <url>` で URL を投入
-- `@薄氷図書室 TypeScript 調べて` で Obsidian 内のナレッジ検索
-
-### 事前準備
-
-1. `.env.example` を `.env` にコピーする
-2. Slack App を作る
-3. Bot Token と App-Level Token を `.env` に入れる
-4. 図書室を使うチャンネル ID を `.env` の `SLACK_CHANNEL_ID` に入れる
-5. 必要ならリアクション絵文字名を `TRIGGER_EMOJI` で変える
-6. Obsidian の保存先が標準と違うなら `OBSIDIAN_USURAHI_DIR` を環境変数で指定する
-
-```bash
-cp .env.example .env
-```
-
-`.env` の最低限はこれです。
-
-```dotenv
-SLACK_BOT_TOKEN=xoxb-...
-SLACK_APP_TOKEN=xapp-...
-SLACK_CHANNEL_ID=C0123456789
-TRIGGER_EMOJI=tosyositsu
-```
-
-### Slack App 側の設定
-
-- Socket Mode: 有効
-- Event Subscriptions: `app_mention`, `reaction_added`
-- Bot Token Scopes: `app_mentions:read`, `channels:history`, `channels:read`, `chat:write`, `reactions:read`
-
-使うチャンネルが private channel の場合は、対応する履歴参照スコープと、そのチャンネルへの bot 招待も必要です。
-
-### 起動
-
-```bash
-npm run slack:bridge
-```
-
-起動後の入口は次です。
-
-- `:tosyositsu:` を URL つき投稿に付ける
-- `@薄氷図書室 https://example.com/article`
-- `@薄氷図書室 TypeScript 調べて`
-
-X 投稿は Slack からは主線に乗せません。これは既存設計どおりで、`./library.sh add <x-url> --excerpt "抜粋本文"` を使います。
