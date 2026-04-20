@@ -72,11 +72,14 @@ function loadQueue() {
   if (!fs.existsSync(QUEUE_FILE)) {
     return { urls: [] };
   }
-  return yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
+  const data = yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
+  const items = Array.isArray(data.urls) ? data.urls : [];
+  data.urls = items.filter((item) => item.status === "pending");
+  return data;
 }
 
 function updateExistingItem(items, url, patch) {
-  const item = items.find((entry) => entry.url === url && entry.status !== "done");
+  const item = items.find((entry) => entry.url === url && entry.status === "pending");
   if (!item) return null;
 
   for (const [key, value] of Object.entries(patch)) {
@@ -160,7 +163,7 @@ async function main() {
   const queue = loadQueue();
   const items = Array.isArray(queue.urls) ? queue.urls : [];
 
-  const duplicate = items.find((item) => item.url === url && item.status !== "done");
+  const duplicate = items.find((item) => item.url === url && item.status === "pending");
   if (duplicate) {
     const updated = updateExistingItem(items, url, { note, intent, excerpt });
     saveQueue(queue);

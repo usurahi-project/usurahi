@@ -72,7 +72,10 @@ function loadQueue() {
   if (!fs.existsSync(QUEUE_FILE)) {
     return { urls: [] };
   }
-  return yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
+  const data = yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
+  const items = Array.isArray(data.urls) ? data.urls : [];
+  data.urls = items.filter((item) => item.status === "pending");
+  return data;
 }
 
 function saveQueue(data) {
@@ -165,11 +168,10 @@ async function notifySlackResult(item) {
       item.use_case ? `薄氷で使うなら、${item.use_case} わね。` : "",
     ].filter(Boolean).join("\n");
   } else if (item.status === "failed") {
-    const nextAction = suggestAction(item) === "refetch" ? "取り直してから、もう一回持ってきてちょうだい。" : "少し置いてから、もう一回見せてちょうだい。";
     text = [
       "手を付けたんだけど、ここで詰まったわ。",
       item.error?.message ? `${item.error.message}` : "",
-      nextAction,
+      "必要なら、URL をもう一度送ってちょうだい。",
     ].filter(Boolean).join("\n");
   }
 
@@ -650,17 +652,16 @@ async function main() {
       const failedStage = item.stage || "unknown";
       markItem(item, "failed", {});
       setError(item, failedStage, error.message);
-      const suggestion = suggestAction(item);
-      console.log(`❌ ${item.url}\n   理由: ${error.message}\n   次: ${suggestion}`);
+      console.log(`❌ ${item.url}\n   理由: ${error.message}\n   次: URL をもう一度送る`);
       failedItems.push({
         url: item.url,
-        suggestion,
         stage: failedStage,
         message: error.message,
       });
       await notifySlackResult(item);
       failedCount += 1;
     }
+    data.urls = items.filter((entry) => entry.status === "pending");
     saveQueue(data);
     console.log("");
   }
@@ -669,7 +670,7 @@ async function main() {
   if (failedItems.length > 0) {
     for (const item of failedItems) {
       console.log(`   - ${item.url}`);
-      console.log(`     ${item.stage} / ${item.message} / suggest:${item.suggestion}`);
+      console.log(`     ${item.stage} / ${item.message} / send-url-again`);
     }
   }
 }

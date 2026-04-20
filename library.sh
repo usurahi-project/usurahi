@@ -8,11 +8,6 @@ set -euo pipefail
 #   ./library.sh                   キューの未処理URLを摩耶花が処理する
 #   ./library.sh add <url>         URLを図書室カウンターへ追加する
 #   ./library.sh -l                キュー一覧を表示する
-#   ./library.sh --failed          失敗URL一覧を表示する
-#   ./library.sh retry --failed    失敗URLをまとめて再試行に戻す
-#   ./library.sh retry <url>       指定URLを再試行に戻す
-#   ./library.sh refetch --failed  失敗URLを再取得前提で戻す
-#   ./library.sh refetch <url>     指定URLを再取得前提で戻す
 #   ./library.sh rebuild <url>     保存済みノートを退避して作り直す
 #=============================================================================
 
@@ -330,11 +325,6 @@ main() {
             echo "    --intent <value>     interesting / try-soon / keep-for-later"
             echo "    --excerpt <text>     抜粋本文（Xはこれを推奨）"
             echo "  -l, --list             処理待ちURL一覧を表示する"
-            echo "  --failed               失敗URL一覧を表示する"
-            echo "  retry --failed         失敗URLをまとめて再試行に戻す"
-            echo "  retry <url>            指定URLを再試行に戻す"
-            echo "  refetch --failed       失敗URLを再取得前提で戻す"
-            echo "  refetch <url>          指定URLを再取得前提で戻す"
             echo "  rebuild <url>          保存済みノートを退避して作り直す"
             echo "  -h, --help             ヘルプを表示する"
             ;;
