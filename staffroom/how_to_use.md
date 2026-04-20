@@ -104,9 +104,11 @@ bash ./ribrary.sh <url>
 
 ## 図書室の補足
 
-図書室は `add -> list -> run -> retry/refetch` の流れで回る。
+図書室は `add -> list -> run` の流れで回る。
 Zenn / Qiita / 公式 docs は URL のまま主線に乗せられる。
 X 投稿は `URL + excerpt` を主線にしておくと運用が安定する。
+整理が終わった本や、途中で詰まった本はキューに残さない。
+うまくいかなかった時は、同じ URL をもう一度送る前提で扱う。
 
 ## さらに知りたい時
 
