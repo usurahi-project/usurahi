@@ -76,8 +76,8 @@ release_lock() {
 # --- モデル・ブートファイル解決 ---
 resolve_model() {
     case "$1" in
-        eru|haruhi|nagato) echo "claude-opus-4-6" ;;
-        *)                 echo "claude-sonnet-4-5-20250929" ;;
+        eru) echo "claude-opus-4-6" ;;
+        *)   echo "claude-sonnet-4-5-20250929" ;;
     esac
 }
 
