@@ -3,13 +3,8 @@ set -euo pipefail
 
 BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 VAULT_ROOT="${OBSIDIAN_USURAHI_DIR:-$HOME/Documents/Obsidian Vault/薄氷}"
-STAFFROOM_DIR="$VAULT_ROOT/職員室"
 ARCHIVE_DIR="$VAULT_ROOT/図書館/薄氷バックナンバー"
 ACTIVITY_LOG_DIR="$VAULT_ROOT/部室/活動記録"
-
-sync_staffroom() {
-  "$BASEDIR/staffroom-sync.sh"
-}
 
 sync_archive() {
   mkdir -p "$ARCHIVE_DIR"
@@ -35,13 +30,11 @@ usage() {
   cat <<'EOF'
 Usage:
   ./sync-obsidian.sh
-  ./sync-obsidian.sh --staffroom
   ./sync-obsidian.sh --archive
   ./sync-obsidian.sh --activity-log
   ./sync-obsidian.sh --list
 
 Options:
-  --staffroom     職員室文書だけ同期する
   --archive       アーカイブだけ同期する
   --activity-log  活動記録だけ同期する
   --list          同期対象の概要を表示する
@@ -51,7 +44,6 @@ EOF
 
 list_targets() {
   cat <<EOF
-staffroom     -> $STAFFROOM_DIR
 archive       -> $ARCHIVE_DIR
 activity-log  -> $ACTIVITY_LOG_DIR
 EOF
@@ -61,7 +53,6 @@ main() {
   local ran=0
 
   if [[ $# -eq 0 ]]; then
-    sync_staffroom
     sync_archive
     sync_activity_log
     exit 0
@@ -69,10 +60,6 @@ main() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --staffroom)
-        sync_staffroom
-        ran=1
-        ;;
       --archive)
         sync_archive
         ran=1

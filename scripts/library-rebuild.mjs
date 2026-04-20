@@ -6,7 +6,8 @@ import yaml from "js-yaml";
 
 const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
-const OBSIDIAN_VAULT = path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
+const DEFAULT_OBSIDIAN_USURAHI_DIR = path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
+const OBSIDIAN_USURAHI_DIR = process.env.OBSIDIAN_USURAHI_DIR || DEFAULT_OBSIDIAN_USURAHI_DIR;
 
 function nowStamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");
@@ -42,7 +43,7 @@ function resetForRebuild(item) {
 function backupSavedNote(item) {
   if (!item.saved_path) return null;
 
-  const absolutePath = path.join(OBSIDIAN_VAULT, item.saved_path);
+  const absolutePath = path.join(OBSIDIAN_USURAHI_DIR, item.saved_path);
   if (!fs.existsSync(absolutePath)) return null;
 
   const dir = path.dirname(absolutePath);
@@ -50,7 +51,7 @@ function backupSavedNote(item) {
   const base = path.basename(absolutePath, ext);
   const backupPath = path.join(dir, `${base}.bak-${nowStamp()}${ext}`);
   fs.renameSync(absolutePath, backupPath);
-  return path.relative(OBSIDIAN_VAULT, backupPath);
+  return path.relative(OBSIDIAN_USURAHI_DIR, backupPath);
 }
 
 function parseArgs(argv) {

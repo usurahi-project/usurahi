@@ -12,10 +12,10 @@ import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
 
-const BASEDIR = path.join(process.env.HOME, "usurahi");
+const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const QUEUE = path.join(BASEDIR, "queue");
-const OBSIDIAN_VAULT = path.join(process.env.HOME, "Documents", "Obsidian Vault");
-const OBSIDIAN_USURAHI = path.join(OBSIDIAN_VAULT, "薄氷");
+const DEFAULT_OBSIDIAN_USURAHI = path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
+const OBSIDIAN_USURAHI = process.env.OBSIDIAN_USURAHI_DIR || DEFAULT_OBSIDIAN_USURAHI;
 const OBSIDIAN_FOLDERS = { archive: "図書館/薄氷バックナンバー", activity_log: "部室/活動記録", library: "図書館/開架" };
 
 // ── helpers ──

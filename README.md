@@ -89,6 +89,20 @@ cp .env.example .env
 - `X_BEARER_TOKEN`
   - 任意
   - X URL を `excerpt` なしで補助取得したい時だけ使う
+- `OBSIDIAN_USURAHI_DIR`
+  - 任意
+  - Obsidian の保存先が `~/Documents/Obsidian Vault/薄氷` 以外なら指定する
+
+配置場所について:
+
+- リポジトリ自体は任意のディレクトリに clone してよい
+- Obsidian 連携だけは `OBSIDIAN_USURAHI_DIR` で保存先を上書きできる
+
+例:
+
+```bash
+export OBSIDIAN_USURAHI_DIR="$HOME/path/to/your/vault/薄氷"
+```
 
 ### 4. Claude / Codex 側で skill を使える状態にする
 
@@ -228,12 +242,6 @@ bash ./ribrary.sh                                 # 摩耶花の受付から図�
 bash ./ribrary.sh <url>                           # URL を本として入れる
 ```
 
-## さらに知りたい時
-
-- 詳しい使い方: [準備室 / 薄氷の使い方](./staffroom/how_to_use.md)
-- 世界観と役割: [準備室 / 薄氷の世界観と役割](./staffroom/world_and_roles.md)
-- 技術設計: [準備室 / 薄氷の技術設計](./staffroom/technical_design.md)
-- 準備室の入口: [staffroom/README.md](./staffroom/README.md)
 ## 補足
 
 いまは `request.sh` が正式依頼入口です。
@@ -279,6 +287,7 @@ Slack は主線そのものではなく、図書室カウンターへの補助�
 3. Bot Token と App-Level Token を `.env` に入れる
 4. 図書室を使うチャンネル ID を `.env` の `SLACK_CHANNEL_ID` に入れる
 5. 必要ならリアクション絵文字名を `TRIGGER_EMOJI` で変える
+6. Obsidian の保存先が標準と違うなら `OBSIDIAN_USURAHI_DIR` を環境変数で指定する
 
 ```bash
 cp .env.example .env
