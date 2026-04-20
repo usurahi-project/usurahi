@@ -85,21 +85,20 @@ function formatQueueReply(url, output) {
   const cleaned = String(output || "").trim();
 
   if (cleaned.includes("すでにカウンターにある")) {
-    const statusMatch = cleaned.match(/状態:\s*(.+)/);
     return [
       "その本、前にも預かってるわよ。",
-      statusMatch ? `いまの様子は ${statusMatch[1]} よ。` : "",
-      "あとは整理の順番を待っていればいいわ。",
-    ].filter(Boolean).join("\n");
+      "いまこちらで見ているところだから、同じものを何度も出さなくていいわ。",
+      "片づいたら、このスレッドに戻るわね。",
+    ].filter(Boolean).join("\n\n");
   }
 
   if (cleaned.includes("図書室カウンターに追加")) {
     const noteMatch = cleaned.match(/ひとこと:\s*(.+)/);
     return [
       "預かったわ。棚に入れる前に、ちゃんと目を通しておくわね。",
-      noteMatch ? `ひとことも見ておくわ。${noteMatch[1]}` : "",
+      noteMatch ? `ひとこと\n${noteMatch[1]}` : "",
       "整理が済んだら、このスレッドに戻るわね。",
-    ].filter(Boolean).join("\n");
+    ].filter(Boolean).join("\n\n");
   }
 
   if (cleaned) {
@@ -107,6 +106,36 @@ function formatQueueReply(url, output) {
   }
 
   return "うまく受け取れなかったわ。もう一回見せてちょうだい。";
+}
+
+function triggerLibraryRun() {
+  return new Promise((resolve) => {
+    execFile(
+      path.join(__dirname, "scripts", "launch-library-run.sh"),
+      [],
+      {
+        cwd: __dirname,
+        timeout: 10000,
+        env: {
+          ...process.env,
+          PATH: `/opt/homebrew/bin:${process.env.PATH}`,
+        },
+      },
+      (err, stdout, stderr) => {
+        if (err) {
+          const errorOutput = stripAnsi(stderr || stdout || err.message || "").trim();
+          console.error("triggerLibraryRun failed:", err.message, errorOutput);
+          resolve({
+            ok: false,
+            message: errorOutput || "整理を起動できなかったわ。少ししてからもう一度見せてちょうだい。",
+          });
+          return;
+        }
+
+        resolve({ ok: true });
+      }
+    );
+  });
 }
 
 // --- Obsidian search ---
@@ -234,17 +263,29 @@ app.event("reaction_added", async ({ event, client }) => {
     }
 
     const note = extractNote(text, urls);
-      await client.chat.postMessage({
-        channel: CHANNEL_ID,
-        text: `${urls.length}件ね。預かるわ。少し待ってなさい。`,
-        thread_ts: event.item.ts,
-      });
+    await client.chat.postMessage({
+      channel: CHANNEL_ID,
+      text: `${urls.length}件ね。預かるわ。いまから見るから少し待ってなさい。`,
+      thread_ts: event.item.ts,
+    });
 
     for (const url of urls) {
       const processed = await enqueueLibrary(url, note, CHANNEL_ID, event.item.ts);
       await client.chat.postMessage({
         channel: CHANNEL_ID,
         text: processed,
+        thread_ts: event.item.ts,
+      });
+    }
+
+    const runResult = await triggerLibraryRun();
+    if (!runResult.ok) {
+      await client.chat.postMessage({
+        channel: CHANNEL_ID,
+        text: [
+          "預かりまではできたんだけど、整理を起動できなかったわ。",
+          runResult.message,
+        ].join("\n"),
         thread_ts: event.item.ts,
       });
     }
@@ -274,7 +315,7 @@ app.event("app_mention", async ({ event, client }) => {
       const note = extractNote(text, urls);
       await client.chat.postMessage({
         channel: event.channel,
-        text: `${urls.length}件ね。預かるわ。少し待ってなさい。`,
+        text: `${urls.length}件ね。預かるわ。いまから見るから少し待ってなさい。`,
         thread_ts,
       });
 
@@ -283,6 +324,18 @@ app.event("app_mention", async ({ event, client }) => {
         await client.chat.postMessage({
           channel: event.channel,
           text: result,
+          thread_ts,
+        });
+      }
+
+      const runResult = await triggerLibraryRun();
+      if (!runResult.ok) {
+        await client.chat.postMessage({
+          channel: event.channel,
+          text: [
+            "預かりまではできたんだけど、整理を起動できなかったわ。",
+            runResult.message,
+          ].join("\n"),
           thread_ts,
         });
       }

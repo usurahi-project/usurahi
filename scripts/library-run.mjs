@@ -155,24 +155,24 @@ async function notifySlackResult(item) {
   if (item.status === "done" && item.duplicate_of) {
     text = [
       "見たことあると思ったら、やっぱり前に入っていたわね。",
-      item.title ? `題名は「${item.title}」よ。` : "",
-      `置いてある場所は ${item.saved_path || item.duplicate_of} よ。`,
+      item.title ? `本の名前\n${item.title}` : "",
+      `しまった場所\n${item.saved_path || item.duplicate_of}`,
       "同じ本を増やすより、今あるものを使ったほうがいいわ。",
-    ].filter(Boolean).join("\n");
+    ].filter(Boolean).join("\n\n");
   } else if (item.status === "done") {
     text = [
-      item.title ? `片づいたわ。「${item.title}」で入れておいたわね。` : "片づいたわ。棚に入れておいたわね。",
-      item.summary ? `内容はこんな感じよ。\n${item.summary}` : "",
-      item.save_value ? `残しておく意味は、${item.save_value}` : "",
-      item.saved_path ? `置き場所は ${item.saved_path} よ。` : "",
-      item.use_case ? `薄氷で使うなら、${item.use_case} わね。` : "",
-    ].filter(Boolean).join("\n");
+      item.title ? `片づいたわ。題名はこれで入れておいたわね。` : "片づいたわ。棚に入れておいたわね。",
+      item.title ? `本の名前\n${item.title}` : "",
+      item.summary ? `ざっと言うと\n${item.summary}` : "",
+      item.use_case ? `薄氷で使うなら\n${item.use_case}` : "",
+      item.saved_path ? `しまった場所\n${item.saved_path}` : "",
+    ].filter(Boolean).join("\n\n");
   } else if (item.status === "failed") {
     text = [
       "手を付けたんだけど、ここで詰まったわ。",
-      item.error?.message ? `${item.error.message}` : "",
+      item.error?.message ? `理由\n${item.error.message}` : "",
       "必要なら、URL をもう一度送ってちょうだい。",
-    ].filter(Boolean).join("\n");
+    ].filter(Boolean).join("\n\n");
   }
 
   if (!text) return;
@@ -448,6 +448,7 @@ async function askMayaka(item) {
 - 例: session management -> セッション管理, security -> セキュリティ, skills -> スキル
 - save_value は「なぜ残すか」を 1 文で書く
 - use_case は「薄氷での使いどころ」として 1 文
+- use_case を特に重視する。抽象論ではなく、薄氷の実際の運用や設計にどう落とし込めるかを優先する
 - related_topics は 2 個から 4 個
 - next_read は 1 個から 3 個
 - related_topics と next_read は短い句で書く
