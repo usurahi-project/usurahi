@@ -4,6 +4,7 @@
 # Secrets / local config
 .env
 .mcp.json
+.codex/
 .claude/settings.local.json
 
 # Dependencies
@@ -12,7 +13,7 @@ mcp/node_modules/
 sample-project/node_modules/
 
 # Logs
-logs/*.log
+logs/
 
 # Runtime state
 blackboard.md
@@ -27,6 +28,7 @@ queue/tasks/*.yaml
 archive/
 activity-log/
 noticeboard/
+staffroom/
 blog-*.md
 blog-sections/
 section-03-practice.md

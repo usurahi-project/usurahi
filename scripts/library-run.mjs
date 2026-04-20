@@ -12,8 +12,9 @@ const execFileAsync = promisify(execFile);
 const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
 const CLAUDE_BIN = path.join(BASEDIR, "scripts", "claude-app.sh");
-const OBSIDIAN_VAULT = path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
-const LIBRARY_DIR = path.join(OBSIDIAN_VAULT, "図書館", "開架");
+const DEFAULT_OBSIDIAN_USURAHI_DIR = path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
+const OBSIDIAN_USURAHI_DIR = process.env.OBSIDIAN_USURAHI_DIR || DEFAULT_OBSIDIAN_USURAHI_DIR;
+const LIBRARY_DIR = path.join(OBSIDIAN_USURAHI_DIR, "図書館", "開架");
 const MAX_EXCERPT_CHARS = 2400;
 const CURL_TIMEOUT_SEC = 20;
 const SLACK_API_URL = "https://slack.com/api/chat.postMessage";
@@ -607,7 +608,7 @@ async function processItem(item) {
   markItem(item, "done", {
     stage: "done",
     title,
-    saved_path: path.relative(OBSIDIAN_VAULT, filePath),
+    saved_path: path.relative(OBSIDIAN_USURAHI_DIR, filePath),
     tags: meta.tags,
     summary: meta.summary,
     save_value: meta.save_value,
