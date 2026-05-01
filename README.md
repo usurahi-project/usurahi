@@ -9,6 +9,10 @@
 
 このプロジェクトで大事にしているのは、最短で答えを返すことではなく、部員たちの視点が混ざって「今の部としての結論」が生まれることです。
 
+加えて、薄氷そのものも学校生活の中で育てていく。
+困りごとを自分たちで見つけ、必要なら校則や新しい教室や機能として実装してよい、という前提を置く。
+この方針は [usurahi_school_life_vision.md](/Users/ano_y/usurahi/usurahi_school_life_vision.md) と [security_and_autonomy.md](/Users/ano_y/usurahi/security_and_autonomy.md) にまとめてある。
+
 ## 何ができるか
 
 - 部活として依頼を受ける
@@ -116,6 +120,27 @@ export OBSIDIAN_USURAHI_DIR="$HOME/path/to/your/vault/薄氷"
 - `/board`
 - `/library`
 
+### 自動運転
+
+学校生活を止めずに回したいなら、先に autopilot を上げる。
+
+```bash
+npm run autopilot:start
+```
+
+状態確認と停止:
+
+```bash
+npm run autopilot:status
+npm run autopilot:stop
+```
+
+autopilot がやること:
+
+- `noticeboard` / `clubroom` が落ちていたら `meeting.sh -a` で立ち上げ直す
+- 図書館キューに `pending` があれば `library.sh` を裏で起動する
+- `school-cycle` を回して、掲示板巡回・AI記事巡回・摩耶花の図書室整頓を間欠実行する
+
 ## 使い方
 
 ### 会議
@@ -190,3 +215,25 @@ npm run library:maintain
 - `図書館ダッシュボード` を更新する
 - `library-shelves/` の fallback 棚も同期する
 - `source` / `topic` 欠けや queue の `pending` / `failed` 件数を確認する
+
+### 学校巡回
+
+学校生活を自律運用する巡回役は 2 つある。
+
+- `board-scout`
+  - 掲示板や図書館や校則の状態を見て、改善候補を掲示板へ起票する
+- `school-watch`
+  - 許可した外部ソースだけを巡回し、図書館へ入れる候補をキューに積む
+
+手動で回すなら:
+
+```bash
+npm run school:cycle
+npm run school:watch
+```
+
+外部巡回の方針:
+
+- allowlist に入っているドメインだけを見る
+- `school-watch` は明示的にネットワーク許可された時だけ外へ出る
+- 見つけた記事は直接実装に使わず、まず図書館キューへ送る

@@ -1,0 +1,52 @@
+recency_days: 14
+max_items_per_source: 5
+enqueue_intent: keep-for-later
+request_timeout_sec: 20
+max_response_bytes: 1200000
+max_redirects: 3
+max_seen_urls: 300
+allowed_hosts:
+  - zenn.dev
+  - openai.com
+  - www.openai.com
+  - anthropic.com
+  - www.anthropic.com
+sources:
+  - id: zenn-openai
+    type: zenn_topic
+    url: https://zenn.dev/topics/openai
+    note: Zenn OpenAI topic
+    include_keywords:
+      - openai
+      - codex
+      - gpt
+      - agents
+      - sdk
+  - id: zenn-claudecode
+    type: zenn_topic
+    url: https://zenn.dev/topics/claudecode
+    note: Zenn Claude Code topic
+    include_keywords:
+      - claude
+      - anthropic
+      - agent
+      - skill
+      - mcp
+  - id: zenn-codex
+    type: zenn_topic
+    url: https://zenn.dev/topics/codex
+    note: Zenn Codex topic
+    include_keywords:
+      - codex
+      - openai
+      - agent
+      - cli
+      - automation
+  - id: openai-news
+    type: openai_newsroom
+    url: https://openai.com/newsroom
+    note: OpenAI newsroom
+  - id: anthropic-news
+    type: html_newsroom
+    url: https://www.anthropic.com/news
+    note: Anthropic newsroom

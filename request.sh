@@ -69,6 +69,20 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+notify_eru() {
+  local request_id="$1"
+
+  if ! tmux has-session -t noticeboard 2>/dev/null; then
+    return 0
+  fi
+
+  if [[ ! -x "$BASEDIR/scripts/notify.sh" ]]; then
+    return 0
+  fi
+
+  "$BASEDIR/scripts/notify.sh" eru "新しい正式依頼 ${request_id} が入りました。依頼: ${request}" >/dev/null 2>&1 || true
+}
+
 if [[ ! -f "$QUEUE_FILE" ]]; then
   mkdir -p "$(dirname "$QUEUE_FILE")"
   printf 'requests: []\n' > "$QUEUE_FILE"
@@ -103,6 +117,7 @@ if [[ -z "$request" ]]; then
   exit 1
 fi
 
+create_output="$(
 QUEUE_FILE="$QUEUE_FILE" REQUEST_TEXT="$request" BACKGROUND_TEXT="$background" REQUESTER_NAME="$requester" node <<'EOF'
 const fs = require("fs");
 const yaml = require("js-yaml");
@@ -151,3 +166,11 @@ console.log(`依頼: ${request}`);
 if (background) console.log(`背景: ${background}`);
 console.log("えるがこの依頼を拾うと、部会が始まります。");
 EOF
+)"
+
+printf '%s\n' "$create_output"
+
+request_id="$(printf '%s\n' "$create_output" | sed -n 's/^正式依頼を追加しました: //p' | head -n 1)"
+if [[ -n "$request_id" ]]; then
+  notify_eru "$request_id"
+fi
