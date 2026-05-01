@@ -1,0 +1,128 @@
+---
+type: guide
+status: stable
+topic: 図書館運用
+created: 2026-05-02
+updated: 2026-05-02
+---
+
+# Claude Code
+
+Claude Code に関係する本を、棚をまたいで集めた書架。
+
+- [[01_概要]]
+  - Claude Code 概要
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/overview
+- [[02_仕組みの理解]]
+  - Claude Code の仕組み
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/how-claude-code-works
+- [[03_ベストプラクティス]]
+  - Claude Code ベストプラクティス
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/best-practices
+- [[04_CLAUDE.mdとメモリ]]
+  - Claudeがプロジェクトを記憶する仕組み
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/memory
+- [[05_スキル]]
+  - スキルでClaudeを拡張する
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/skills
+- [[06_フック]]
+  - フック
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/hooks
+- [[07_MCP統合]]
+  - MCPでClaude Codeをツールに接続する
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/mcp
+- [[08_サブエージェント]]
+  - カスタムサブエージェントの作成
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/sub-agents
+- [[09_AgentSDK概要]]
+  - Claude Code をライブラリとして使い、本番環境向けAIエージェントを構築する
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/agent-sdk/overview
+- [[10_エージェントループ]]
+  - エージェントループ
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/agent-sdk/agent-loop
+- [[11_カスタムツール]]
+  - カスタムツール
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/agent-sdk/custom-tools
+- [[12_エージェントチーム]]
+  - エージェントチーム
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/agent-teams
+- [[13_プラグイン作成]]
+  - カスタムプラグインの作成
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/plugins
+- [[14_プラグイン検出とマーケットプレイス]]
+  - プラグインの検出とインストール
+  - 棚: Claude Code/公式ドキュメント / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/discover-plugins
+- [[15_運用ベストプラクティス集]]
+  - Claude Code 運用ベストプラクティス集
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/best-practices
+- [[16_ClaudeCodeとCodexの使い分け比較]]
+  - Claude Code と Codex の使い分け比較
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://code.claude.com/docs/en/best-practices
+- [[Claude Code Hooksを遊び倒す]]
+  - Claude Code Hooksの非標準的な活用方法を4カテゴリに分けて紹介。通知・エンタメから高度な自動化まで、海外勢のユニークなネタ設定例が満載の実践ガイド。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/kki2ne/articles/claude-code-hooks-unique-use-cases-2026
+- [[Claude Code で LLM Wiki を実装する]]
+  - Claude CodeでLLM Wiki を実装し、自動成長するナレッジベースを構築する方法を紹介。スキルとhooks で raw/wiki/brand-foundation の3層構造を作り、長期的に品質と一貫性を保つ。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/biscuit/articles/llm-wiki-claude-code-personal-knowledge-base
+- [[Claude Code による E2E テスト自動修復パイプライン]]
+  - Playwright の E2E テスト失敗を夜間に自動検出し、Claude Code CLI で分析・修復して Draft PR を作成。QA ナレッジをエラーパターンカタログ化し、プロンプトに組み込んで自動意思決定に活用する。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/yuden/articles/playwright-auto-heal-claude-code
+- [[Claude Codeで45個の日常タスクを自動化した運用システム]]
+  - メール処理・論文監視・レポート生成など日常業務45個をcronジョブで自動化し、Pythonでデータ加工・Claudeで判断を分担する設計。長期運用を持続させるための工夫（OAuth不要化、読み取り専用化）を実装例で解説。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/shunya_sudo/articles/claude-code-45-automation-tasks
+- [[Claude Codeのセッション管理：100万トークンコンテキストの最適活用]]
+  - 100万トークンのコンテキストウィンドウで30万～40万トークンからコンテキスト腐敗が発生するため、新しいタスクは新しいセッションで始める。/rewindで失敗試行を削除し、/compact、/clear、サブエージェントを使い分けることで安定性を確保できる。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://x.com/trq212/status/2044...
+- [[Claude Codeマルチエージェント_multi-agent-shogun設計パターン]]
+  - Claude Code × tmux で10体のAIエージェントを階層構造で運用するマルチエージェントシステム「multi-agent-shogun」の設計と運用知見。戦国時代の軍制（将軍・家老・足軽）をモチーフにした指揮系統で、人間は承認判断のみ行う。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/shio_shoppaize/articles/5fee11d03a11a1
+- [[claude-doctor による CLAUDE.md の継続改善]]
+  - 過去のセッションログを自動分析してルール候補を生成し、CLAUDE.md を継続的に育てるパイプラインの実装方法。Stop hook と claude-doctor を組み合わせ、気づかないパターンまで拾う。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/sc30gsw/articles/a07c99d6b2fb9f
+- [[CLAUDE.md 刷新で Claude Code の生産性を計測する]]
+  - CLAUDE.md を 329 行から 131 行に削減し、Claude Code の実行メトリクスを --output-format json で定量的に検証する実例。リポジトリ横断の知識管理とドキュメント最適化がパフォーマンスに直結することを示す。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/progate/articles/cb3018bbfc5aad
+- [[GitHub CLIのgh skillコマンドでスキル管理を統一]]
+  - GitHub CLIのgh skillコマンドでスキルをインストール・公開できる。バージョン固定やセキュリティ対策が組み込まれている。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/ubie_dev/articles/gh-skill-install-agent-skills
+- [[Humanizer — AI文章の人間化スキル]]
+  - Claude CodeとOpenCodeで利用できるスキル。AI生成テキストの29パターンを検出し、ユーザーの執筆スタイルに合わせて人間らしい文章に変換する。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://github.com/blader/humanizer
+- [[humanizer_academic]]
+  - 記事執筆用の参考実装で、humanizer の学術的背景を示す実装例。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://github.com/matsuikentaro1/humanizer_academic
+- [[LLM Wikiで知識をコンパイルする（Karpathy式）]]
+  - RAGではなく、LLMに永続的なWikiを構築させて知識を蓄積・進化させるアプローチ。3層構造（ソース/Wiki/スキーマ）と4つの操作（取り込み/質問/検証/索引）で実現する。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/dely_jp/articles/8b55114cc0b958
+- [[実行駆動型プロンプト評価]]
+  - プロンプト作成直後の思い込みを避けるため、別 AI に実際に実行させて評価する手法。自己申告と機械的計測の 2 面評価で段階的に精緻化する。
+  - 棚: Claude Code/tips記事 / 話題: Claude Code
+  - 出典: https://zenn.dev/mizchi/articles/empirical-prompt-tuning

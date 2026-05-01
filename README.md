@@ -177,3 +177,16 @@ CLI で直接使うなら:
 bash ./ribrary.sh
 bash ./ribrary.sh "https://zenn.dev/example/articles/abc"
 ```
+
+図書室の入口と棚をまとめて整えたい時:
+
+```bash
+npm run library:maintain
+```
+
+摩耶花の定期整頓でやること:
+
+- `図書館/開架` を再帰走査して `図書館/書架` を作り直す
+- `図書館ダッシュボード` を更新する
+- `library-shelves/` の fallback 棚も同期する
+- `source` / `topic` 欠けや queue の `pending` / `failed` 件数を確認する
