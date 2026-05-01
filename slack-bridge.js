@@ -81,23 +81,37 @@ function stripAnsi(str) {
   );
 }
 
+function extractPendingCount(text) {
+  const match = String(text || "").match(/未処理:\s*(\d+)件/);
+  return match ? match[1] : "";
+}
+
+function extractIntent(text) {
+  const match = String(text || "").match(/意図:\s*(.+)/);
+  return match ? match[1] : "";
+}
+
 function formatQueueReply(url, output) {
   const cleaned = String(output || "").trim();
+  const pendingCount = extractPendingCount(cleaned);
 
   if (cleaned.includes("すでにカウンターにある")) {
     return [
       "その本、前にも預かってるわよ。",
-      "いまこちらで見ているところだから、同じものを何度も出さなくていいわ。",
-      "片づいたら、このスレッドに戻るわね。",
+      "いま見ている本なら、このスレッドで続きが返るわ。",
+      "もう片づいた本なら、同じ URL をもう一度出せば改めて見直せるわ。",
     ].filter(Boolean).join("\n\n");
   }
 
   if (cleaned.includes("図書室カウンターに追加")) {
     const noteMatch = cleaned.match(/ひとこと:\s*(.+)/);
+    const intentMatch = extractIntent(cleaned);
     return [
       "預かったわ。棚に入れる前に、ちゃんと目を通しておくわね。",
+      pendingCount ? `いまの待ち行列\n${pendingCount}件` : "",
+      intentMatch ? `保存意図\n${intentMatch}` : "",
       noteMatch ? `ひとこと\n${noteMatch[1]}` : "",
-      "整理が済んだら、このスレッドに戻るわね。",
+      "片づいたら、このスレッドに棚まで含めて返すわ。",
     ].filter(Boolean).join("\n\n");
   }
 
