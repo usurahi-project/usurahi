@@ -1,0 +1,120 @@
+---
+type: guide
+status: stable
+topic: 図書館運用
+created: 2026-05-02
+updated: 2026-05-02
+---
+
+# AIコア技術
+
+AIコア技術 に関係する本を、棚をまたいで集めた書架。
+
+- [[2026-04-27_0930_attention-is-all-you-need]]
+  - Attentionだけで十分だ
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_0930_bpe-subword-units]]
+  - サブワード単位による稀少語の機械翻訳
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1100_bert]]
+  - BERT: 言語理解のための双方向Transformerの事前学習
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1110_instructgpt-rlhf]]
+  - 人間のフィードバックで指示に従うLLMを訓練する
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1120_chain-of-thought]]
+  - Chain-of-Thoughtプロンプティングは大規模言語モデルの推論を引き出す
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1130_lora]]
+  - LoRA: 大規模言語モデルの低ランク適応
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1140_dense-passage-retrieval]]
+  - DPR: オープンドメイン質問応答のための密ベクトル検索
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1150_flash-attention]]
+  - FlashAttention: IO認識を持つ高速・メモリ効率の正確なAttention
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1200_gpt3-few-shot]]
+  - 言語モデルは少数の例だけで学習する
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1210_scaling-laws]]
+  - ニューラル言語モデルのスケーリング則
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1220_mixture-of-experts]]
+  - とんでもなく巨大なニューラルネット: スパースゲート付きMoE層
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1230_dpo]]
+  - DPO: 直接選好最適化 — あなたの言語モデルは秘かに報酬モデルである
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1240_constitutional-ai]]
+  - 憲法AI: AIフィードバックによる無害化
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1250_speculative-decoding]]
+  - 推測デコーディングによるTransformerの高速推論
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1300_codex-humaneval]]
+  - コードで訓練された大規模言語モデルの評価
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1310_react]]
+  - ReAct: 言語モデルにおける推論と行動の協調
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1320_toolformer]]
+  - Toolformer: 言語モデルは自分でツールの使い方を学べる
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1330_swe-bench]]
+  - SWE-bench: 言語モデルは現実のGitHub Issueを解決できるか？
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1340_reflexion]]
+  - Reflexion: 言語的強化学習による言語エージェント
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_1350_swe-agent]]
+  - SWE-Agent: エージェント-コンピュータインターフェースが自動ソフトウェア工学を可能にする
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_agenticqwen-small-agent-training]]
+  - AgenticQwen: 産業規模のツール利用に対応した小型エージェントLLMをデュアルデータフライホイールで学習する
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-27_hot-mess-of-ai-misalignment-scaling]]
+  - AIのホットメス: 誤動作はモデル知能とタスク複雑度でどうスケールするのか
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-04-28_automated-alignment-researcher]]
+  - 自動アラインメント研究者：AIがAIの育て方を研究する
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: Anthropic Alignment Science Blog
+- [[2026-04-28_parallel-token-prediction]]
+  - 並列トークン予測（PTP）：言葉を一気に何個も予測する
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv (ICLR 2026)
+- [[2026-05-01_expert-strikes-back-moe]]
+  - エキスパートの逆襲：MoE言語モデルを「エキスパート単位」で読み解く
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-05-01_expert-upcycling-moe]]
+  - Expert Upcycling: MoEの計算効率フロンティアを引き上げる
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
+- [[2026-05-01_smc-speculative-decoding]]
+  - Sequential Monte Carlo を使ったLLMの高速推論
+  - 棚: AIコア技術 / 話題: AIコア技術
+  - 出典: arxiv
