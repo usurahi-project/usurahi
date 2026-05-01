@@ -1,23 +1,6 @@
 #!/usr/bin/env node
 
-import fs from "fs";
-import path from "path";
-import yaml from "js-yaml";
-
-const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
-
-function loadQueue() {
-  if (!fs.existsSync(QUEUE_FILE)) {
-    return { urls: [] };
-  }
-  return yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
-}
-
-function saveQueue(data) {
-  fs.mkdirSync(path.dirname(QUEUE_FILE), { recursive: true });
-  fs.writeFileSync(QUEUE_FILE, yaml.dump(data, { lineWidth: -1, noRefs: true }), "utf8");
-}
+import { latestFailedEntries, loadPendingQueue, savePendingQueue, findLatestHistoryByUrl } from "./library-queue-store.mjs";
 
 function resetForRetry(item) {
   item.status = "pending";
@@ -35,6 +18,10 @@ function resetForRetry(item) {
   delete item.duplicate_of;
 }
 
+function cloneForPending(item) {
+  return JSON.parse(JSON.stringify(item));
+}
+
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === "--failed") {
     return { mode: "failed" };
@@ -49,12 +36,21 @@ function parseArgs(argv) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const queue = loadQueue();
+  const queue = loadPendingQueue();
   const items = Array.isArray(queue.urls) ? queue.urls : [];
+  const failedEntries = latestFailedEntries();
+  const sourceTargets = args.mode === "failed"
+    ? failedEntries
+    : [findLatestHistoryByUrl(args.url)].filter((item) => item?.status === "failed");
+  const targets = [];
 
-  const targets = args.mode === "failed"
-    ? items.filter((item) => item.status === "failed")
-    : items.filter((item) => item.url === args.url && item.status === "failed");
+  for (const entry of sourceTargets) {
+    if (items.some((item) => item.url === entry.url && item.status === "pending")) continue;
+    const cloned = cloneForPending(entry);
+    resetForRetry(cloned);
+    items.push(cloned);
+    targets.push(cloned);
+  }
 
   if (targets.length === 0) {
     if (args.mode === "failed") {
@@ -65,11 +61,7 @@ function main() {
     return;
   }
 
-  for (const item of targets) {
-    resetForRetry(item);
-  }
-
-  saveQueue(queue);
+  savePendingQueue(queue);
 
   if (args.mode === "failed") {
     console.log(`✓ ${targets.length}件を再試行に戻した`);

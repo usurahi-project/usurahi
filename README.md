@@ -192,7 +192,7 @@ bash ./board.sh add "この論点はあとで見返したい"
 摩耶花「なに？」
 1. 本を入れる
 2. 入っている本を見る
-3. 失敗した本を見る
+3. 詰まった本の履歴を見る
 ...
 ```
 
@@ -214,7 +214,7 @@ npm run library:maintain
 - `図書館/開架` を再帰走査して `図書館/書架` を作り直す
 - `図書館ダッシュボード` を更新する
 - `library-shelves/` の fallback 棚も同期する
-- `source` / `topic` 欠けや queue の `pending` / `failed` 件数を確認する
+- `source` / `topic` 欠けや queue の `pending` / `failed履歴` 件数を確認する
 
 ### 学校巡回
 

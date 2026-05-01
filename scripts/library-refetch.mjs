@@ -1,23 +1,6 @@
 #!/usr/bin/env node
 
-import fs from "fs";
-import path from "path";
-import yaml from "js-yaml";
-
-const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
-
-function loadQueue() {
-  if (!fs.existsSync(QUEUE_FILE)) {
-    return { urls: [] };
-  }
-  return yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
-}
-
-function saveQueue(data) {
-  fs.mkdirSync(path.dirname(QUEUE_FILE), { recursive: true });
-  fs.writeFileSync(QUEUE_FILE, yaml.dump(data, { lineWidth: -1, noRefs: true }), "utf8");
-}
+import { latestFailedEntries, loadPendingQueue, savePendingQueue, findLatestHistoryByUrl } from "./library-queue-store.mjs";
 
 function resetDraft(item) {
   item.normalized_text = "";
@@ -52,6 +35,10 @@ function resetForRefetch(item) {
   }
 }
 
+function cloneForPending(item) {
+  return JSON.parse(JSON.stringify(item));
+}
+
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === "--failed") {
     return { mode: "failed" };
@@ -64,18 +51,27 @@ function parseArgs(argv) {
   throw new Error("usage: ./library.sh refetch <url> | ./library.sh refetch --failed");
 }
 
-function selectTargets(items, args) {
+function selectTargets(args) {
   if (args.mode === "failed") {
-    return items.filter((item) => item.status === "failed");
+    return latestFailedEntries();
   }
-  return items.filter((item) => item.url === args.url && item.status !== "done");
+  return [findLatestHistoryByUrl(args.url)].filter(Boolean);
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  const queue = loadQueue();
+  const queue = loadPendingQueue();
   const items = Array.isArray(queue.urls) ? queue.urls : [];
-  const targets = selectTargets(items, args);
+  const sourceTargets = selectTargets(args);
+  const targets = [];
+
+  for (const entry of sourceTargets) {
+    if (items.some((item) => item.url === entry.url && item.status === "pending")) continue;
+    const cloned = cloneForPending(entry);
+    resetForRefetch(cloned);
+    items.push(cloned);
+    targets.push(cloned);
+  }
 
   if (targets.length === 0) {
     if (args.mode === "failed") {
@@ -86,11 +82,7 @@ function main() {
     return;
   }
 
-  for (const item of targets) {
-    resetForRefetch(item);
-  }
-
-  saveQueue(queue);
+  savePendingQueue(queue);
 
   if (args.mode === "failed") {
     console.log(`✓ ${targets.length}件を再取得前提で戻した`);

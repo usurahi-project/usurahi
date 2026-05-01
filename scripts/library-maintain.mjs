@@ -5,10 +5,10 @@ import path from "path";
 import yaml from "js-yaml";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { loadPendingQueue, latestFailedEntries } from "./library-queue-store.mjs";
 
 const execFileAsync = promisify(execFile);
 const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
 const OBSIDIAN_USURAHI_DIR = process.env.OBSIDIAN_USURAHI_DIR || path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
 const LIBRARY_DIR = path.join(OBSIDIAN_USURAHI_DIR, "図書館", "開架");
 const LOCKER_DIR = path.join(OBSIDIAN_USURAHI_DIR, "教室", "ロッカー");
@@ -41,12 +41,11 @@ function readFrontmatter(content) {
 }
 
 function queueStats() {
-  if (!fs.existsSync(QUEUE_FILE)) return { pending: 0, failed: 0 };
-  const data = yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || {};
+  const data = loadPendingQueue();
   const urls = Array.isArray(data.urls) ? data.urls : [];
   return {
-    pending: urls.filter((item) => item.status === "pending").length,
-    failed: urls.filter((item) => item.status === "failed").length,
+    pending: urls.length,
+    failed: latestFailedEntries().length,
   };
 }
 

@@ -7,7 +7,7 @@ set -euo pipefail
 # Usage:
 #   ./library.sh                   キューの未処理URLを摩耶花が処理する
 #   ./library.sh add <url>         URLを図書室カウンターへ追加する
-#   ./library.sh -l                キュー一覧を表示する
+#   ./library.sh -l                処理待ち一覧を表示する
 #   ./library.sh rebuild <url>     保存済みノートを退避して作り直す
 #=============================================================================
 
@@ -85,21 +85,23 @@ check_run_prerequisites() {
 # --- 件数カウント ---
 count_items() {
     local target_status="$1"
-    node --input-type=module - "$QUEUE_FILE" "$target_status" <<'NODE'
-import fs from "fs";
-import yaml from "js-yaml";
-
-const filePath = process.argv[2];
+    node --input-type=module - "$BASEDIR/scripts/library-queue-store.mjs" "$target_status" <<'NODE'
+const modulePath = process.argv[2];
 const targetStatus = process.argv[3];
-if (!fs.existsSync(filePath)) {
-  console.log("0");
+const store = await import(`file://${modulePath}`);
+
+if (targetStatus === "pending") {
+  const data = store.loadPendingQueue();
+  console.log(String(Array.isArray(data.urls) ? data.urls.length : 0));
   process.exit(0);
 }
 
-const data = yaml.load(fs.readFileSync(filePath, "utf8")) || {};
-const urls = Array.isArray(data.urls) ? data.urls : [];
-const count = urls.filter((item) => item.status === targetStatus).length;
-console.log(String(count));
+if (targetStatus === "failed") {
+  console.log(String(store.latestFailedEntries().length));
+  process.exit(0);
+}
+
+console.log("0");
 NODE
 }
 
@@ -139,22 +141,21 @@ list_queue() {
 }
 
 list_failed_queue() {
-    list_queue_by_status "failed" "失敗" "失敗中の本はないわよ"
+    list_queue_by_status "failed" "要再確認" "詰まった本は残っていないわよ"
 }
 
 list_queue_items() {
     local target_status="$1"
-    node --input-type=module - "$QUEUE_FILE" "$target_status" <<'NODE'
-import fs from "fs";
-import yaml from "js-yaml";
-
-const filePath = process.argv[2];
+    node --input-type=module - "$BASEDIR/scripts/library-queue-store.mjs" "$target_status" <<'NODE'
+const modulePath = process.argv[2];
 const targetStatus = process.argv[3];
-const data = yaml.load(fs.readFileSync(filePath, "utf8")) || {};
-const items = (Array.isArray(data.urls) ? data.urls : []).filter((item) => item.status === targetStatus);
+const store = await import(`file://${modulePath}`);
+const items = targetStatus === "failed"
+  ? store.latestFailedEntries()
+  : (store.loadPendingQueue().urls || []);
 
 function suggestAction(item) {
-  if (item.status !== "failed") return "";
+  if (item.status !== "failed") return item.fetch_status || "not-fetched";
 
   const stage = item.stage || "";
   const message = String(item.error?.message || "").toLowerCase();
@@ -178,7 +179,7 @@ for (const item of items) {
   ].filter(Boolean).join(" ");
   const extra = item.status === "failed"
     ? `${item.stage || "unknown"} / ${item.error?.message || "unknown error"} / suggest:${suggestAction(item)}`
-    : `${item.fetch_status || "not-fetched"}`;
+    : suggestAction(item);
   console.log(`${item.url}\t${summary}\t${extra}`);
 }
 NODE

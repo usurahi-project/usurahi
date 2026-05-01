@@ -1,12 +1,7 @@
 #!/usr/bin/env node
 
 import "dotenv/config";
-import fs from "fs";
-import path from "path";
-import yaml from "js-yaml";
-
-const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
+import { loadPendingQueue, savePendingQueue } from "./library-queue-store.mjs";
 const VALID_INTENTS = new Set(["interesting", "try-soon", "keep-for-later"]);
 
 function parseArgs(argv) {
@@ -68,16 +63,6 @@ function now() {
   return new Date().toISOString();
 }
 
-function loadQueue() {
-  if (!fs.existsSync(QUEUE_FILE)) {
-    return { urls: [] };
-  }
-  const data = yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
-  const items = Array.isArray(data.urls) ? data.urls : [];
-  data.urls = items.filter((item) => item.status === "pending");
-  return data;
-}
-
 function updateExistingItem(items, url, patch) {
   const item = items.find((entry) => entry.url === url && entry.status === "pending");
   if (!item) return null;
@@ -104,11 +89,6 @@ function updateExistingItem(items, url, patch) {
   item.error = null;
 
   return item;
-}
-
-function saveQueue(data) {
-  fs.mkdirSync(path.dirname(QUEUE_FILE), { recursive: true });
-  fs.writeFileSync(QUEUE_FILE, yaml.dump(data, { lineWidth: -1, noRefs: true }), "utf8");
 }
 
 function extractXMeta(rawUrl) {
@@ -167,7 +147,7 @@ async function fetchXPost(postId) {
 
 async function main() {
   const { url, note, intent, excerpt, slackChannel, slackThreadTs } = parseArgs(process.argv.slice(2));
-  const queue = loadQueue();
+  const queue = loadPendingQueue();
   const items = Array.isArray(queue.urls) ? queue.urls : [];
 
   const duplicate = items.find((item) => item.url === url && item.status === "pending");
@@ -178,7 +158,7 @@ async function main() {
       excerpt,
       slack: slackChannel ? { channel: slackChannel, thread_ts: slackThreadTs || "" } : null,
     });
-    saveQueue(queue);
+    savePendingQueue(queue);
 
     const lines = [`⚠ すでにカウンターにある: ${url}`];
     if (updated?.excerpt) lines.push("  抜粋: 更新");
@@ -235,7 +215,7 @@ async function main() {
 
   items.push(item);
   queue.urls = items;
-  saveQueue(queue);
+  savePendingQueue(queue);
 
   const lines = [
     `✓ 図書室カウンターに追加: ${url}`,
