@@ -5,6 +5,11 @@
   "main": "index.js",
   "scripts": {
     "slack:bridge": "node slack-bridge.js",
+    "autopilot:start": "bash ./scripts/autopilot.sh start",
+    "autopilot:stop": "bash ./scripts/autopilot.sh stop",
+    "autopilot:status": "bash ./scripts/autopilot.sh status",
+    "school:cycle": "node ./scripts/school-cycle.mjs --force",
+    "school:watch": "node ./scripts/school-watch.mjs --apply",
     "library:maintain": "node ./scripts/library-maintain.mjs",
     "library:shelf": "node ./scripts/library-shelf.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"

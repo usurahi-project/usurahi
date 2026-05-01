@@ -26,8 +26,8 @@ resolve_pane() {
         eru)     echo "noticeboard.0" ;;
         haruhi)  echo "clubroom.0" ;;
         oreki)   echo "clubroom.1" ;;
-        kyon)    echo "clubroom.2" ;;
-        nagato)  echo "clubroom.3" ;;
+        kyon)    echo "clubroom.3" ;;
+        nagato)  echo "clubroom.5" ;;
         *)
             echo "エラー: 不明な送信先 '$target'" >&2
             echo "  使用可能: eru, haruhi, oreki, kyon, nagato" >&2
