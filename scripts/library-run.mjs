@@ -3,14 +3,13 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import yaml from "js-yaml";
 import { execFile, spawn } from "child_process";
 import { promisify } from "util";
+import { loadPendingQueue, savePendingQueue, recordLibraryHistory } from "./library-queue-store.mjs";
 
 const execFileAsync = promisify(execFile);
 
 const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
 const CLAUDE_BIN = path.join(BASEDIR, "scripts", "claude-app.sh");
 const DEFAULT_OBSIDIAN_USURAHI_DIR = path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
 const OBSIDIAN_USURAHI_DIR = process.env.OBSIDIAN_USURAHI_DIR || DEFAULT_OBSIDIAN_USURAHI_DIR;
@@ -67,21 +66,6 @@ function now() {
 
 function today() {
   return new Date().toISOString().split("T")[0];
-}
-
-function loadQueue() {
-  if (!fs.existsSync(QUEUE_FILE)) {
-    return { urls: [] };
-  }
-  const data = yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
-  const items = Array.isArray(data.urls) ? data.urls : [];
-  data.urls = items.filter((item) => item.status === "pending");
-  return data;
-}
-
-function saveQueue(data) {
-  fs.mkdirSync(path.dirname(QUEUE_FILE), { recursive: true });
-  fs.writeFileSync(QUEUE_FILE, yaml.dump(data, { lineWidth: -1, noRefs: true }), "utf8");
 }
 
 function ensurePipelineFields(item) {
@@ -628,7 +612,7 @@ async function processItem(item) {
 }
 
 async function main() {
-  const data = loadQueue();
+  const data = loadPendingQueue();
   const items = Array.isArray(data.urls) ? data.urls : [];
   for (const item of items) {
     ensurePipelineFields(item);
@@ -663,8 +647,9 @@ async function main() {
       await notifySlackResult(item);
       failedCount += 1;
     }
+    recordLibraryHistory(item);
     data.urls = items.filter((entry) => entry.status === "pending");
-    saveQueue(data);
+    savePendingQueue(data);
     console.log("");
   }
 

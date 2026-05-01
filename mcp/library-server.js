@@ -11,6 +11,7 @@ import { z } from "zod";
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
+import { loadPendingQueue, savePendingQueue, loadLibraryHistory, recordLibraryHistory } from "../scripts/library-queue-store.mjs";
 
 const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const QUEUE = path.join(BASEDIR, "queue");
@@ -105,8 +106,7 @@ server.tool(
     excerpt: z.string().default("").describe("抜粋本文。Xはこれを推奨"),
   },
   async ({ url, note, intent, excerpt }) => {
-    const filePath = path.join(QUEUE, "library_queue.yaml");
-    const data = readYaml(filePath) || { urls: [] };
+    const data = loadPendingQueue();
     if (!data.urls) data.urls = [];
 
     if (data.urls.some((item) => item.url === url && item.status !== "done")) {
@@ -136,8 +136,8 @@ server.tool(
     }
 
     data.urls.push(item);
-    writeYaml(filePath, data);
-    const pending = data.urls.filter((u) => u.status === "pending").length;
+    savePendingQueue(data);
+    const pending = data.urls.length;
     return { content: [{ type: "text", text: `キューに追加: ${url}（未処理: ${pending}件）` }] };
   }
 );
@@ -148,14 +148,27 @@ server.tool(
   "get_library_queue",
   "薄氷図書館のURLキューを取得する。",
   {
-    status: z.enum(["pending", "done", "all"]).default("pending").describe("フィルタするステータス"),
+    status: z.enum(["pending", "failed", "history", "all"]).default("pending").describe("フィルタするステータス"),
   },
   async ({ status }) => {
-    const data = readYaml(path.join(QUEUE, "library_queue.yaml"));
-    if (!data?.urls || data.urls.length === 0) return { content: [{ type: "text", text: "キューは空" }] };
-    const urls = status === "all" ? data.urls : data.urls.filter((u) => u.status === status);
-    if (urls.length === 0) return { content: [{ type: "text", text: `${status}のURLなし` }] };
-    return { content: [{ type: "text", text: yaml.dump(urls, { lineWidth: -1 }) }] };
+    const queue = loadPendingQueue().urls || [];
+    const history = loadLibraryHistory().entries || [];
+    if (status === "pending") {
+      if (queue.length === 0) return { content: [{ type: "text", text: "pendingのURLなし" }] };
+      return { content: [{ type: "text", text: yaml.dump(queue, { lineWidth: -1 }) }] };
+    }
+    if (status === "failed") {
+      const failed = history.filter((u) => u.status === "failed");
+      if (failed.length === 0) return { content: [{ type: "text", text: "failedのURLなし" }] };
+      return { content: [{ type: "text", text: yaml.dump(failed, { lineWidth: -1 }) }] };
+    }
+    if (status === "history") {
+      if (history.length === 0) return { content: [{ type: "text", text: "履歴なし" }] };
+      return { content: [{ type: "text", text: yaml.dump(history, { lineWidth: -1 }) }] };
+    }
+    const all = [...queue, ...history];
+    if (all.length === 0) return { content: [{ type: "text", text: "キューと履歴は空" }] };
+    return { content: [{ type: "text", text: yaml.dump(all, { lineWidth: -1 }) }] };
   }
 );
 
@@ -193,14 +206,15 @@ server.tool(
     status: z.enum(["done", "failed"]).describe("新しいステータス"),
   },
   async ({ url, status }) => {
-    const filePath = path.join(QUEUE, "library_queue.yaml");
-    const data = readYaml(filePath) || { urls: [] };
+    const data = loadPendingQueue();
     const item = data.urls?.find((u) => u.url === url);
     if (!item) return { content: [{ type: "text", text: `キューに見つからない: ${url}` }] };
     item.status = status;
     item.processed_at = timestamp();
-    writeYaml(filePath, data);
-    return { content: [{ type: "text", text: `${url} を ${status} に更新` }] };
+    recordLibraryHistory(item);
+    data.urls = data.urls.filter((u) => u.url !== url);
+    savePendingQueue(data);
+    return { content: [{ type: "text", text: `${url} を ${status} にして履歴へ移した` }] };
   }
 );
 

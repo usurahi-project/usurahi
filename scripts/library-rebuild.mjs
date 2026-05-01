@@ -2,27 +2,12 @@
 
 import fs from "fs";
 import path from "path";
-import yaml from "js-yaml";
-
-const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
+import { loadPendingQueue, savePendingQueue, findLatestHistoryByUrl } from "./library-queue-store.mjs";
 const DEFAULT_OBSIDIAN_USURAHI_DIR = path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
 const OBSIDIAN_USURAHI_DIR = process.env.OBSIDIAN_USURAHI_DIR || DEFAULT_OBSIDIAN_USURAHI_DIR;
 
 function nowStamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");
-}
-
-function loadQueue() {
-  if (!fs.existsSync(QUEUE_FILE)) {
-    return { urls: [] };
-  }
-  return yaml.load(fs.readFileSync(QUEUE_FILE, "utf8")) || { urls: [] };
-}
-
-function saveQueue(data) {
-  fs.mkdirSync(path.dirname(QUEUE_FILE), { recursive: true });
-  fs.writeFileSync(QUEUE_FILE, yaml.dump(data, { lineWidth: -1, noRefs: true }), "utf8");
 }
 
 function resetForRebuild(item) {
@@ -38,6 +23,10 @@ function resetForRebuild(item) {
   delete item.comment;
   delete item.tags;
   delete item.duplicate_of;
+}
+
+function cloneForPending(item) {
+  return JSON.parse(JSON.stringify(item));
 }
 
 function backupSavedNote(item) {
@@ -63,20 +52,26 @@ function parseArgs(argv) {
 
 function main() {
   const { url } = parseArgs(process.argv.slice(2));
-  const queue = loadQueue();
+  const queue = loadPendingQueue();
   const items = Array.isArray(queue.urls) ? queue.urls : [];
-  const item = items.find((entry) => entry.url === url);
+  const source = findLatestHistoryByUrl(url);
 
-  if (!item) {
-    console.log(`⚠ 指定URLは図書室キューにない: ${url}`);
+  if (!source) {
+    console.log(`⚠ 指定URLは図書室履歴にない: ${url}`);
+    return;
+  }
+  if (items.some((entry) => entry.url === url && entry.status === "pending")) {
+    console.log(`⚠ 指定URLはすでに再処理待ちにある: ${url}`);
     return;
   }
 
+  const item = cloneForPending(source);
   const backupPath = backupSavedNote(item);
   resetForRebuild(item);
   delete item.saved_path;
+  items.push(item);
 
-  saveQueue(queue);
+  savePendingQueue(queue);
 
   const lines = [`✓ 作り直し待ちに戻した: ${url}`];
   if (backupPath) {
