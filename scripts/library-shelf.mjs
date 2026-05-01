@@ -16,11 +16,16 @@ const DASHBOARD_FILE = path.join(LIBRARY_ROOT_DIR, "図書館ダッシュボー�
 const SHELF_RULES = [
   { name: "AIエージェント", keywords: ["Claude Code", "Codex", "agent", "エージェント", "subagent", "MCP"] },
   { name: "薄氷設計", keywords: ["薄氷", "長期運用", "知識整理", "フロー設計", "コンテキスト管理", "役割分担", "判断基準"] },
+  { name: "公式ドキュメント", keywords: ["公式ドキュメント", "code.claude.com/docs", "developers.openai.com/codex", "developers.openai.com/api/docs/models"] },
+  { name: "導入と基本理解", keywords: ["概要", "クイックスタート", "仕組み", "ベストプラクティス", "ガイド", "use-cases", "quickstart", "overview"] },
   { name: "セッション管理", keywords: ["セッション管理", "context window", "コンテキスト", "memory", "CLAUDE.md", "/compact", "/clear", "/rewind"] },
   { name: "自動化", keywords: ["自動化", "automation", "hook", "hooks", "cron", "定期実行", "pipeline", "GitHub Action", "nightly", "自動修復"] },
   { name: "スキル設計", keywords: ["スキル", "skills", "skill", "SKILL.md", "gh skill", "humanizer"] },
   { name: "MCP・拡張", keywords: ["MCP", "plugin", "plugins", "プラグイン", "custom tool", "カスタムツール", "SDK", "拡張"] },
   { name: "評価と品質", keywords: ["評価", "quality", "品質", "テスト", "review", "レビュー", "診断", "doctor", "メトリクス", "計測"] },
+  { name: "会計・業務仕様", keywords: ["会計連携", "請求書", "zengin", "税込", "税抜", "取引先", "ラベル出力", "payment_request", "全銀"] },
+  { name: "デザイン参考", keywords: ["UI", "デザイン", "黄金比", "LiftKit"] },
+  { name: "ドラフトと素材", keywords: ["draft", "internal draft", "更新指示メモ", "example domain"] },
 ];
 
 function readFrontmatter(content) {
@@ -169,6 +174,15 @@ function writeFrontmatterFile(filePath, title, bodyLines) {
   fs.writeFileSync(filePath, content, "utf8");
 }
 
+function clearGeneratedShelfFiles(shelfDir) {
+  if (!fs.existsSync(shelfDir)) return;
+  for (const entry of fs.readdirSync(shelfDir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    if (!entry.name.endsWith(".md")) continue;
+    fs.unlinkSync(path.join(shelfDir, entry.name));
+  }
+}
+
 function buildIndexContent(shelfMap, shelfGroups, options = {}) {
   const lines = [
     "テーマ別に本を探すための入口。`開架` の中身を横断して、複数の観点で本を束ねる。",
@@ -278,6 +292,7 @@ function main() {
   const outputDirs = [DEFAULT_SHELF_DIR, FALLBACK_SHELF_DIR];
   for (const shelfDir of outputDirs) {
     fs.mkdirSync(shelfDir, { recursive: true });
+    clearGeneratedShelfFiles(shelfDir);
     const isVaultDir = shelfDir === DEFAULT_SHELF_DIR;
     writeFrontmatterFile(
       path.join(shelfDir, "index.md"),
