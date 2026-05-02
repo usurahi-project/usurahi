@@ -96,6 +96,25 @@ function ensurePipelineFields(item) {
   }
 }
 
+function formatSlackPath(savedPath) {
+  if (!savedPath) return "";
+  return String(savedPath).replace(/^図書館\//, "");
+}
+
+function inferShelfLabel(item) {
+  const savedPath = formatSlackPath(item.saved_path || item.duplicate_of || "");
+  if (!savedPath) return "";
+  const segments = savedPath.split("/").filter(Boolean);
+  if (segments.length < 3) return savedPath;
+  return `${segments[1]} / ${segments[2].replace(/\.md$/, "")}`;
+}
+
+function summarizeTags(tags) {
+  const items = Array.isArray(tags) ? tags.slice(0, 4) : [];
+  if (items.length === 0) return "";
+  return items.map((tag) => `#${tag}`).join(" ");
+}
+
 async function postSlackUpdate(item, text) {
   if (!item.slack?.channel || !process.env.SLACK_BOT_TOKEN) {
     return false;
@@ -138,25 +157,34 @@ async function notifySlackResult(item) {
 
   let text = "";
   if (item.status === "done" && item.duplicate_of) {
+    const shelf = inferShelfLabel(item);
     text = [
-      "見たことあると思ったら、やっぱり前に入っていたわね。",
+      "前に入っていた本だったわ。",
       item.title ? `本の名前\n${item.title}` : "",
-      `しまった場所\n${item.saved_path || item.duplicate_of}`,
-      "同じ本を増やすより、今あるものを使ったほうがいいわ。",
+      shelf ? `棚\n${shelf}` : "",
+      item.saved_path ? `場所\n${formatSlackPath(item.saved_path)}` : "",
+      "同じ本は増やしていないわ。既存の棚を使って。",
     ].filter(Boolean).join("\n\n");
   } else if (item.status === "done") {
+    const shelf = inferShelfLabel(item);
     text = [
-      item.title ? `片づいたわ。題名はこれで入れておいたわね。` : "片づいたわ。棚に入れておいたわね。",
+      item.title ? "片づいたわ。ちゃんと棚に入れておいた。" : "片づいたわ。棚に入れておいたわね。",
       item.title ? `本の名前\n${item.title}` : "",
+      shelf ? `棚\n${shelf}` : "",
+      item.saved_path ? `場所\n${formatSlackPath(item.saved_path)}` : "",
+      item.tags?.length ? `タグ\n${summarizeTags(item.tags)}` : "",
       item.summary ? `ざっと言うと\n${item.summary}` : "",
       item.use_case ? `薄氷で使うなら\n${item.use_case}` : "",
-      item.saved_path ? `しまった場所\n${item.saved_path}` : "",
     ].filter(Boolean).join("\n\n");
   } else if (item.status === "failed") {
+    const nextAction = suggestAction(item) === "refetch"
+      ? "本文取得で詰まった。必要なら URL をもう一度投げるか、抜粋付きで入れて。"
+      : "整理段階で詰まった。必要なら同じ URL をもう一度投げて。";
     text = [
       "手を付けたんだけど、ここで詰まったわ。",
+      item.stage ? `段階\n${item.stage}` : "",
       item.error?.message ? `理由\n${item.error.message}` : "",
-      "必要なら、URL をもう一度送ってちょうだい。",
+      `次\n${nextAction}`,
     ].filter(Boolean).join("\n\n");
   }
 

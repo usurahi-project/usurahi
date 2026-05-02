@@ -11,6 +11,9 @@
 node_modules/
 mcp/node_modules/
 sample-project/node_modules/
+dashboard/node_modules/
+dashboard/dist/
+dashboard/public/school-status.json
 
 # Logs
 logs/
