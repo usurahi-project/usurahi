@@ -12,6 +12,9 @@
     "school:watch": "node ./scripts/school-watch.mjs --apply",
     "library:maintain": "node ./scripts/library-maintain.mjs",
     "library:shelf": "node ./scripts/library-shelf.mjs",
+    "school:status": "node ./scripts/generate-school-status.mjs",
+    "dashboard:dev": "npm --prefix ./dashboard run dev",
+    "dashboard:build": "node ./scripts/generate-school-status.mjs && npm --prefix ./dashboard run build && node ./scripts/publish-school-dashboard.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

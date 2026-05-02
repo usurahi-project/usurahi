@@ -216,6 +216,21 @@ npm run library:maintain
 - `library-shelves/` の fallback 棚も同期する
 - `source` / `topic` 欠けや queue の `pending` / `failed履歴` 件数を確認する
 
+### 学校運営ダッシュボード
+
+職員室には、学校の状態を見る運営盤がある。
+React + Vite で作った静的 UI を Obsidian Vault 側へ出力して使う。
+
+```bash
+npm run school:status
+npm run dashboard:build
+```
+
+- `school:status`
+  - 運営状態の JSON を更新する
+- `dashboard:build`
+  - UI を build して `薄氷/職員室/dashboard/` に出力する
+
 ### 学校巡回
 
 学校生活を自律運用する巡回役は 2 つある。
