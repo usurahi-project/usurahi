@@ -4,4 +4,4 @@
 *.jsx linguist-language=Ruby
 *.sh linguist-language=Ruby
 *.css linguist-language=Ruby
-*.html linguist-language=ERB
+*.html linguist-language=Ruby
