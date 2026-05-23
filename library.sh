@@ -61,6 +61,10 @@ show_library_door() {
 
 # --- 前提条件チェック ---
 check_prerequisites() {
+    if ! command -v ruby &>/dev/null; then
+        error "ruby がインストールされていません"
+        exit 1
+    fi
     if ! command -v node &>/dev/null; then
         error "node がインストールされていません"
         exit 1
@@ -206,7 +210,7 @@ add_to_queue() {
     fi
 
     local result
-    result=$(cd "$BASEDIR" && node scripts/library-add.mjs "$@")
+    result=$(cd "$BASEDIR" && ruby scripts/library-add.rb "$@")
     echo ""
     echo "$result"
     echo ""
