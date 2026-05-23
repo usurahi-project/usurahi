@@ -10,7 +10,8 @@ const execFileAsync = promisify(execFile);
 const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const CONFIG_FILE = path.join(BASEDIR, "config", "school_watch_sources.yaml");
 const STATE_FILE = path.join(BASEDIR, "queue", "news_watch_state.yaml");
-const LIBRARY_ADD = path.join(BASEDIR, "scripts", "library-add.rb");
+const TSX = path.join(BASEDIR, "node_modules", ".bin", "tsx");
+const LIBRARY_ADD = path.join(BASEDIR, "scripts", "library-add.ts");
 
 function parseArgs(argv) {
   return {
@@ -283,7 +284,7 @@ async function enqueueItem(item, source, intent) {
   }
   const note = `school-watch: ${source.note || source.id}${item.published_at ? ` / ${item.published_at}` : ""}`;
   const args = [LIBRARY_ADD, item.link, "--note", note, "--intent", intent];
-  await execFileAsync("ruby", args, { cwd: BASEDIR });
+  await execFileAsync(TSX, args, { cwd: BASEDIR });
 }
 
 async function main() {

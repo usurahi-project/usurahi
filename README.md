@@ -33,7 +33,6 @@
 前提ツール:
 
 - `git`
-- `ruby`
 - `node` / `npm`
 - `tmux`
 - `claude` (Claude Code CLI)
@@ -44,7 +43,6 @@
 
 - `node`: `v24.3.0`
 - `npm`: `11.4.2`
-- `ruby`: macOS 標準の Ruby でも可
 
 ### 必要なツール
 
@@ -52,7 +50,6 @@
 
 ```bash
 git --version
-ruby --version
 node --version
 npm --version
 tmux -V
