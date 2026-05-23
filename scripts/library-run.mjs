@@ -2,6 +2,7 @@
 
 import "dotenv/config";
 import fs from "fs";
+import net from "net";
 import path from "path";
 import { execFile, spawn } from "child_process";
 import { promisify } from "util";
@@ -243,6 +244,50 @@ function extractArticleText(html) {
   return stripHtml(html);
 }
 
+function isPrivateIpv4(hostname) {
+  if (net.isIP(hostname) !== 4) return false;
+  const parts = hostname.split(".").map((part) => Number(part));
+  const [a, b] = parts;
+  return (
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+}
+
+function isPrivateIpv6(hostname) {
+  if (net.isIP(hostname) !== 6) return false;
+  const normalized = hostname.toLowerCase();
+  return normalized === "::1" || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe80");
+}
+
+function assertFetchableUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error("URL の形式が不正");
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error("図書館の本文取得は https URL だけ許可");
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    isPrivateIpv4(hostname) ||
+    isPrivateIpv6(hostname)
+  ) {
+    throw new Error("ローカルまたはプライベートアドレスへの取得は不可");
+  }
+
+  return parsed.toString();
+}
+
 function sanitizeFileName(input) {
   return String(input || "untitled")
     .replace(/[\/\\:*?"<>|]/g, " ")
@@ -368,7 +413,6 @@ async function runClaudePrompt(prompt) {
       [
         "--model",
         "claude-haiku-4-5-20251001",
-        "--dangerously-skip-permissions",
         "--max-turns",
         "6",
         "-p",
@@ -418,9 +462,10 @@ async function runClaudePrompt(prompt) {
 }
 
 async function fetchUrlText(url) {
+  const safeUrl = assertFetchableUrl(url);
   const { stdout } = await execFileAsync(
     "curl",
-    ["-L", "--max-time", String(CURL_TIMEOUT_SEC), url],
+    ["-L", "--fail", "--silent", "--show-error", "--max-time", String(CURL_TIMEOUT_SEC), safeUrl],
     {
       cwd: BASEDIR,
       timeout: (CURL_TIMEOUT_SEC + 5) * 1000,

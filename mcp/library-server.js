@@ -36,6 +36,16 @@ function timestamp() {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "");
 }
 
+function sanitizeNoteTitle(title) {
+  const safeTitle = String(title || "untitled")
+    .replace(/[\\/:*?"<>|]/g, " ")
+    .replace(/\.\.+/g, ".")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+  return safeTitle || "untitled";
+}
+
 function extractXMeta(rawUrl) {
   try {
     const parsed = new URL(rawUrl);
@@ -245,9 +255,10 @@ server.tool(
       content += `\n\n## 関連\n${links}\n`;
     }
 
-    const filePath = path.join(dir, `${title}.md`);
+    const safeTitle = sanitizeNoteTitle(title);
+    const filePath = path.join(dir, `${safeTitle}.md`);
     fs.writeFileSync(filePath, frontmatter + content, "utf8");
-    return { content: [{ type: "text", text: `Obsidian保存完了: 薄氷/${folderName}/${title}.md` }] };
+    return { content: [{ type: "text", text: `Obsidian保存完了: 薄氷/${folderName}/${safeTitle}.md` }] };
   }
 );
 
@@ -309,7 +320,8 @@ server.tool(
   },
   async ({ title, category }) => {
     const folderName = OBSIDIAN_FOLDERS[category] || category;
-    const filePath = path.join(OBSIDIAN_USURAHI, folderName, `${title}.md`);
+    const safeTitle = sanitizeNoteTitle(title);
+    const filePath = path.join(OBSIDIAN_USURAHI, folderName, `${safeTitle}.md`);
     if (!fs.existsSync(filePath)) return { content: [{ type: "text", text: `ノートが見つからない: ${title}` }] };
     const content = fs.readFileSync(filePath, "utf8");
     return { content: [{ type: "text", text: content }] };
