@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
 
-const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const BASEDIR = process.env.USURAHI_BASEDIR || path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 export const QUEUE_FILE = path.join(BASEDIR, "queue", "library_queue.yaml");
 export const HISTORY_FILE = path.join(BASEDIR, "queue", "library_history.yaml");
 const HISTORY_LIMIT = 200;

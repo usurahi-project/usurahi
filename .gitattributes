@@ -1,7 +1,8 @@
-# Keep GitHub Linguist language stats grouped as a Ruby/Rails-style project.
-*.js linguist-language=Ruby
-*.mjs linguist-language=Ruby
-*.jsx linguist-language=Ruby
-*.sh linguist-language=Ruby
-*.css linguist-language=Ruby
-*.html linguist-language=Ruby
+# Keep GitHub Linguist language stats grouped as a TypeScript project.
+*.js linguist-language=TypeScript
+*.mjs linguist-language=TypeScript
+*.ts linguist-language=TypeScript
+*.jsx linguist-language=TypeScript
+*.sh linguist-language=TypeScript
+*.css linguist-language=TypeScript
+*.html linguist-language=TypeScript

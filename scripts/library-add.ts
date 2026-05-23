@@ -1,20 +1,88 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 import "dotenv/config";
 import { loadPendingQueue, savePendingQueue } from "./library-queue-store.mjs";
-const VALID_INTENTS = new Set(["interesting", "try-soon", "keep-for-later"]);
 
-function parseArgs(argv) {
+type Intent = "interesting" | "try-soon" | "keep-for-later";
+type SourceType = "link" | "x";
+type FetchStatus = "not-needed" | "manual" | "skipped" | "failed" | "done";
+
+type SlackRef = {
+  channel: string;
+  thread_ts: string;
+  notified_at?: string;
+};
+
+type Draft = {
+  title: string;
+  summary: string;
+  tags: string[];
+  comment?: string;
+};
+
+type QueueItem = {
+  url: string;
+  note: string;
+  intent: Intent | "";
+  excerpt: string;
+  status: "pending" | "done" | "failed";
+  stage: string;
+  added_at?: string;
+  fetched_text: string;
+  normalized_text: string;
+  draft: Draft;
+  error: unknown | null;
+  slack?: SlackRef;
+  source_type?: SourceType;
+  post_id?: string;
+  author_hint?: string;
+  fetch_status?: FetchStatus;
+  fetch_error?: string;
+  fetched_at?: string;
+  author?: string;
+  author_name?: string;
+  text?: string;
+  posted_at?: string;
+};
+
+type QueueData = {
+  urls?: QueueItem[];
+};
+
+type ParsedArgs = {
+  url: string;
+  note: string;
+  intent: Intent | "";
+  excerpt: string;
+  slackChannel: string;
+  slackThreadTs: string;
+};
+
+type XMeta = {
+  sourceType: "x";
+  authorHint: string;
+  postId: string;
+};
+
+type XFetchResult = Partial<QueueItem> & {
+  fetch_status: Exclude<FetchStatus, "not-needed" | "manual">;
+};
+
+const VALID_INTENTS = new Set<Intent>(["interesting", "try-soon", "keep-for-later"]);
+
+function parseArgs(argv: string[]): ParsedArgs {
   const args = [...argv];
   let url = "";
   let note = "";
-  let intent = "";
+  let intent: Intent | "" = "";
   let excerpt = "";
   let slackChannel = "";
   let slackThreadTs = "";
 
   while (args.length > 0) {
     const token = args.shift();
+    if (!token) continue;
+
     if (!url && !token.startsWith("--")) {
       url = token;
       continue;
@@ -26,7 +94,11 @@ function parseArgs(argv) {
     }
 
     if (token === "--intent") {
-      intent = args.shift() || "";
+      const value = args.shift() || "";
+      if (value && !isIntent(value)) {
+        throw new Error("intent must be one of: interesting, try-soon, keep-for-later");
+      }
+      intent = value ? value as Intent : "";
       continue;
     }
 
@@ -52,33 +124,34 @@ function parseArgs(argv) {
     throw new Error("usage: ./library.sh add <url> [--note <text>] [--intent <value>] [--excerpt <text>]");
   }
 
-  if (intent && !VALID_INTENTS.has(intent)) {
-    throw new Error("intent must be one of: interesting, try-soon, keep-for-later");
-  }
-
   return { url, note, intent, excerpt, slackChannel, slackThreadTs };
 }
 
-function now() {
+function isIntent(value: string): value is Intent {
+  return VALID_INTENTS.has(value as Intent);
+}
+
+function now(): string {
   return new Date().toISOString();
 }
 
-function updateExistingItem(items, url, patch) {
+function updateExistingItem(
+  items: QueueItem[],
+  url: string,
+  patch: Partial<Pick<QueueItem, "note" | "intent" | "excerpt" | "slack">>,
+): QueueItem | null {
   const item = items.find((entry) => entry.url === url && entry.status === "pending");
   if (!item) return null;
 
-  for (const [key, value] of Object.entries(patch)) {
-    if (key === "slack" && value && typeof value === "object") {
-      item.slack = {
-        ...(item.slack || {}),
-        ...value,
-      };
-      continue;
-    }
-    if (value !== "") {
-      item[key] = value;
-    }
+  if (patch.slack) {
+    item.slack = {
+      ...(item.slack || {}),
+      ...patch.slack,
+    };
   }
+  if (patch.note !== undefined && patch.note !== "") item.note = patch.note;
+  if (patch.intent !== undefined && patch.intent !== "") item.intent = patch.intent;
+  if (patch.excerpt !== undefined && patch.excerpt !== "") item.excerpt = patch.excerpt;
 
   if (item.source_type === "x" && patch.excerpt) {
     item.fetch_status = "manual";
@@ -91,8 +164,8 @@ function updateExistingItem(items, url, patch) {
   return item;
 }
 
-function extractXMeta(rawUrl) {
-  let parsed;
+function extractXMeta(rawUrl: string): XMeta | null {
+  let parsed: URL;
   try {
     parsed = new URL(rawUrl);
   } catch {
@@ -111,7 +184,7 @@ function extractXMeta(rawUrl) {
   return { sourceType: "x", authorHint: match[1], postId: match[2] };
 }
 
-async function fetchXPost(postId) {
+async function fetchXPost(postId: string): Promise<XFetchResult> {
   const token = process.env.X_BEARER_TOKEN;
   if (!token) {
     return { fetch_status: "skipped", fetch_error: "X_BEARER_TOKEN is not set" };
@@ -128,26 +201,32 @@ async function fetchXPost(postId) {
     },
   });
 
-  const payload = await response.json().catch(() => ({}));
+  const payload = await response.json().catch(() => ({})) as {
+    detail?: string;
+    title?: string;
+    data?: { text?: string; created_at?: string };
+    includes?: { users?: Array<{ username?: string; name?: string }> };
+  };
+
   if (!response.ok) {
-    const message = payload?.detail || payload?.title || `HTTP ${response.status}`;
+    const message = payload.detail || payload.title || `HTTP ${response.status}`;
     return { fetch_status: "failed", fetch_error: message };
   }
 
-  const author = payload?.includes?.users?.[0] || {};
+  const author = payload.includes?.users?.[0] || {};
   return {
     fetch_status: "done",
     fetched_at: now(),
     author: author.username || "",
     author_name: author.name || "",
-    text: payload?.data?.text || "",
-    posted_at: payload?.data?.created_at || "",
+    text: payload.data?.text || "",
+    posted_at: payload.data?.created_at || "",
   };
 }
 
-async function main() {
+async function main(): Promise<void> {
   const { url, note, intent, excerpt, slackChannel, slackThreadTs } = parseArgs(process.argv.slice(2));
-  const queue = loadPendingQueue();
+  const queue = loadPendingQueue() as QueueData;
   const items = Array.isArray(queue.urls) ? queue.urls : [];
 
   const duplicate = items.find((item) => item.url === url && item.status === "pending");
@@ -156,7 +235,7 @@ async function main() {
       note,
       intent,
       excerpt,
-      slack: slackChannel ? { channel: slackChannel, thread_ts: slackThreadTs || "" } : null,
+      slack: slackChannel ? { channel: slackChannel, thread_ts: slackThreadTs || "" } : undefined,
     });
     savePendingQueue(queue);
 
@@ -169,7 +248,7 @@ async function main() {
     return;
   }
 
-  const item = {
+  const item: QueueItem = {
     url,
     note,
     intent,
@@ -205,8 +284,7 @@ async function main() {
     if (excerpt) {
       item.fetch_status = "manual";
     } else {
-      const fetched = await fetchXPost(xMeta.postId);
-      Object.assign(item, fetched);
+      Object.assign(item, await fetchXPost(xMeta.postId));
     }
   } else {
     item.source_type = "link";
@@ -240,7 +318,8 @@ async function main() {
   console.log(lines.join("\n"));
 }
 
-main().catch((error) => {
-  console.error(`✗ ${error.message}`);
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`✗ ${message}`);
   process.exit(1);
 });
