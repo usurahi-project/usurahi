@@ -231,7 +231,10 @@ setup_sessions() {
 launch_claude() {
     dim "Claude Code を起動しています..."
 
-    local common_flags="--dangerously-skip-permissions"
+    local common_flags=""
+    if [[ "${USURAHI_DANGEROUS_SKIP_PERMISSIONS:-0}" == "1" ]]; then
+        common_flags="--dangerously-skip-permissions"
+    fi
 
     # Claude Code のプロンプト検出（❯ = U+276F が入力待ちの目印）
     detect_prompt() {
@@ -314,7 +317,10 @@ launch_claude() {
 launch_workers() {
     echo -e "  部員を呼んでいます..."
 
-    local common_flags="--dangerously-skip-permissions"
+    local common_flags=""
+    if [[ "${USURAHI_DANGEROUS_SKIP_PERMISSIONS:-0}" == "1" ]]; then
+        common_flags="--dangerously-skip-permissions"
+    fi
 
     # clubroom セッションが存在するか確認
     if ! tmux has-session -t "$CLUBROOM_SESSION" 2>/dev/null; then

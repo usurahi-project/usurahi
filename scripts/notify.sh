@@ -117,7 +117,12 @@ ensure_running() {
     sleep 0.3
     tmux send-keys -t "$pane" C-u
     sleep 0.3
-    tmux send-keys -t "$pane" "$CLAUDE_BIN --model $model --dangerously-skip-permissions" Enter
+    local common_flags=""
+    if [[ "${USURAHI_DANGEROUS_SKIP_PERMISSIONS:-0}" == "1" ]]; then
+        common_flags="--dangerously-skip-permissions"
+    fi
+
+    tmux send-keys -t "$pane" "$CLAUDE_BIN --model $model $common_flags" Enter
 
     # プロンプト待ち（最大45秒）
     local waited=0

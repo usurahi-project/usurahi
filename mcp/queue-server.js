@@ -51,6 +51,16 @@ function slugify(value) {
     .trim();
 }
 
+function sanitizeNoteTitle(title) {
+  const safeTitle = String(title || "untitled")
+    .replace(/[\\/:*?"<>|]/g, " ")
+    .replace(/\.\.+/g, ".")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+  return safeTitle || "untitled";
+}
+
 function formatBoardValue(value, { empty = "---", fallback = "なし" } = {}) {
   if (value === null || value === undefined) return empty;
   if (typeof value === "string") {
@@ -218,6 +228,7 @@ function writeObsidianNote({ category, title, content, tags = [], related = [] }
   const folderName = OBSIDIAN_FOLDERS[category] || category;
   const dir = path.join(OBSIDIAN_USURAHI, folderName);
   fs.mkdirSync(dir, { recursive: true });
+  const safeTitle = sanitizeNoteTitle(title);
 
   const today = currentDate();
   const allTags = ["薄氷", category, ...tags];
@@ -230,7 +241,7 @@ function writeObsidianNote({ category, title, content, tags = [], related = [] }
   }
 
   const frontmatter = `---\ndate: ${today}\ncategory: ${category}\ntags:\n${tagLine}\n---\n\n`;
-  const filePath = path.join(dir, `${title}.md`);
+  const filePath = path.join(dir, `${safeTitle}.md`);
   fs.writeFileSync(filePath, frontmatter + finalContent, "utf8");
   return filePath;
 }
@@ -364,19 +375,20 @@ function nextArchiveNumber() {
 }
 
 function readActivityLogByTitle(title) {
-  const localPath = path.join(BASEDIR, "activity-log", `${title}.md`);
+  const safeTitle = sanitizeNoteTitle(title);
+  const localPath = path.join(BASEDIR, "activity-log", `${safeTitle}.md`);
   if (fs.existsSync(localPath)) {
     return {
-      title,
+      title: safeTitle,
       content: fs.readFileSync(localPath, "utf8"),
       localPath,
     };
   }
 
-  const obsidianPath = path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.activity_log, `${title}.md`);
+  const obsidianPath = path.join(OBSIDIAN_USURAHI, OBSIDIAN_FOLDERS.activity_log, `${safeTitle}.md`);
   if (fs.existsSync(obsidianPath)) {
     return {
-      title,
+      title: safeTitle,
       content: fs.readFileSync(obsidianPath, "utf8"),
       localPath: obsidianPath,
     };
@@ -959,7 +971,7 @@ server.tool(
     const filePath = writeObsidianNote({ category, title, content, tags, related });
     const folderName = OBSIDIAN_FOLDERS[category] || category;
 
-    return { content: [{ type: "text", text: `Obsidian保存完了: 薄氷/${folderName}/${title}.md` }] };
+    return { content: [{ type: "text", text: `Obsidian保存完了: 薄氷/${folderName}/${sanitizeNoteTitle(title)}.md` }] };
   }
 );
 
@@ -1087,7 +1099,8 @@ server.tool(
   },
   async ({ title, category }) => {
     const folderName = OBSIDIAN_FOLDERS[category] || category;
-    const filePath = path.join(OBSIDIAN_USURAHI, folderName, `${title}.md`);
+    const safeTitle = sanitizeNoteTitle(title);
+    const filePath = path.join(OBSIDIAN_USURAHI, folderName, `${safeTitle}.md`);
     if (!fs.existsSync(filePath)) {
       return { content: [{ type: "text", text: `ノートが見つからない: ${title}` }] };
     }

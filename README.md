@@ -11,7 +11,7 @@
 
 加えて、薄氷そのものも学校生活の中で育てていく。
 困りごとを自分たちで見つけ、必要なら校則や新しい教室や機能として実装してよい、という前提を置く。
-この方針は [usurahi_school_life_vision.md](/Users/ano_y/usurahi/usurahi_school_life_vision.md) と [security_and_autonomy.md](/Users/ano_y/usurahi/security_and_autonomy.md) にまとめてある。
+この方針は [usurahi_school_life_vision.md](./usurahi_school_life_vision.md) と [security_and_autonomy.md](./security_and_autonomy.md) にまとめてある。
 
 ## 何ができるか
 
@@ -63,6 +63,13 @@ brew install node tmux gum
 ```
 
 `claude` は別途インストールし、ログインも済ませておく。
+
+Claude Code の permission bypass はデフォルトでは使わない。
+ローカル検証用に明示して使う場合だけ、次を設定する。
+
+```bash
+export USURAHI_DANGEROUS_SKIP_PERMISSIONS=1
+```
 
 ## セットアップ
 
@@ -119,6 +126,17 @@ export OBSIDIAN_USURAHI_DIR="$HOME/path/to/your/vault/薄氷"
 - `/kaigi`
 - `/board`
 - `/library`
+
+## 開発時の確認
+
+TypeScript 側の型と会話契約は次で確認する。
+
+```bash
+npm run typecheck
+npm test
+```
+
+`npm test` では、図書室キューの挙動に加えて、ペルソナの役割境界や安全側のデフォルトも検査する。
 
 ### 自動運転
 
