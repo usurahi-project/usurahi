@@ -597,6 +597,7 @@ function createMeetingState({ meeting_id, project_path, request }) {
           scoped: false,
           direction_set: false,
           feasibility_checked: false,
+          expectation_matched: false,
           ready_to_return: false,
         },
       },

@@ -19,6 +19,7 @@
     "test": "node --import tsx --test test/*.test.ts && npm --prefix ./dashboard test",
     "typecheck": "tsc --noEmit",
     "library:add": "tsx scripts/library-add.ts",
+    "meeting:liveness": "node scripts/conversation-liveness.mjs",
     "meeting:highlight": "node scripts/meeting-highlight.mjs --print"
   },
   "keywords": [],
