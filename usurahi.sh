@@ -128,7 +128,17 @@ start_meeting() {
 
 show_status() {
   say "今の状態を見ます。"
-  meeting_summary
+  local summary holder phase next_action
+  summary="$(meeting_summary)"
+  IFS=$'\t' read -r holder phase next_action <<< "$summary"
+  if [[ "${holder:-none}" == "none" && "${phase:-なし}" == "なし" ]]; then
+    echo "今は進行中の会議はありません。"
+    echo "始めるなら: ./usurahi.sh start"
+  else
+    echo "フェーズ: ${phase:-なし}"
+    echo "ボール: ${holder:-none}"
+    echo "次の一手: ${next_action:-なし}"
+  fi
   echo ""
   echo "よく使う操作:"
   echo "  会議を始める: ./usurahi.sh start"

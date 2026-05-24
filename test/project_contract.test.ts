@@ -149,3 +149,14 @@ test("blackboard render includes meeting status and completion checklist", async
   assert.ok(queueServer.includes("完了条件"), "blackboard should show completion checks");
   assert.ok(queueServer.includes("renderCompletionCheck"), "completion checklist should be generated centrally");
 });
+
+test("meeting progress updates have a validated tool path", async () => {
+  const queueServer = await readRepoFile("mcp/queue-server.js");
+  const eru = await readRepoFile("instructions/eru.md");
+
+  assert.ok(queueServer.includes("\"update_progress\""), "queue server should expose update_progress");
+  assert.ok(queueServer.includes("validateProgressState"), "progress updates should be validated before writing");
+  assert.ok(queueServer.includes("phase/progress は update_progress"), "generic update_meeting should not own progress fields");
+  assert.ok(eru.includes("phase: preparing_response"), "eru should use preparing_response before requester handoff");
+  assert.ok(eru.includes("phase: ready_to_return"), "eru should keep ready_to_return for requester handoff");
+});

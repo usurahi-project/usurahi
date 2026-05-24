@@ -34,6 +34,7 @@ test("reception status explains the next available commands", async () => {
   const { stdout } = await runReception(["status"]);
 
   assert.match(stdout, /今の状態/);
+  assert.match(stdout, /今は進行中の会議はありません|フェーズ:/);
   assert.match(stdout, /会議を始める: \.\/usurahi\.sh start/);
   assert.match(stdout, /部室を見る:\s+\.\/usurahi\.sh room/);
   assert.match(stdout, /掲示板:\s+\.\/usurahi\.sh board list/);
@@ -47,6 +48,7 @@ test("tutorial explains the first-time structure and next command", async () => 
   assert.match(stdout, /\.\/usurahi\.sh/);
   assert.match(stdout, /tmux attach -t clubroom/);
   assert.match(stdout, /● 名前/);
+  assert.match(stdout, /\.\/usurahi\.sh start --setup/);
   assert.match(stdout, /ユーザーは依頼を持ち込み/);
 });
 
