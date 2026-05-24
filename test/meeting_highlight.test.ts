@@ -5,6 +5,7 @@ import { test } from "node:test";
 
 type HighlightModule = {
   currentBallHolder: (meeting: unknown) => string;
+  meetingSummary: (meeting: unknown) => { phase: string; holder: string; nextAction: string };
   normalizeMember: (value: unknown) => string;
   paneTitle: (target: string, holder: string) => string;
 };
@@ -50,4 +51,22 @@ test("meeting highlight marks only the holder pane title", async () => {
 
   assert.equal(highlight.paneTitle("clubroom.3", "kyon"), "● キョン");
   assert.equal(highlight.paneTitle("clubroom.1", "kyon"), "折木");
+});
+
+test("meeting summary exposes phase, holder, and next action", async () => {
+  const highlight = await loadHighlightModule();
+  const summary = highlight.meetingSummary({
+    phase: "discussing",
+    progress: {
+      owner: "haruhi",
+      waiting_for: null,
+      next_action: "propose_direction",
+    },
+  });
+
+  assert.deepEqual(summary, {
+    phase: "議論中",
+    holder: "ハルヒ",
+    nextAction: "propose_direction",
+  });
 });

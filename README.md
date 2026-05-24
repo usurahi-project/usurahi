@@ -183,6 +183,7 @@ tmux attach -t clubroom
 
 部室では、会話のボールを持っている人のペインが `● 名前` と黄色い枠でハイライトされる。
 判定は `queue/gijiroku.yaml` の `progress.waiting_for` を優先し、部員名でなければ `progress.owner` を使う。
+黒板上部には `phase`、ボール保持者、進行役、次の一手、完了条件も表示される。
 
 ### 掲示板
 

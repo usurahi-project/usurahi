@@ -139,3 +139,13 @@ test("meeting setup wires tmux highlight refresh into the blackboard loop", asyn
   assert.ok(readme.includes("● 名前"), "README should document the highlight marker");
   assert.ok(packageJson.includes("meeting:highlight"), "package.json should expose a manual highlight command");
 });
+
+test("blackboard render includes meeting status and completion checklist", async () => {
+  const queueServer = await readRepoFile("mcp/queue-server.js");
+
+  assert.ok(queueServer.includes("## 🟨 会議ステータス"), "blackboard should include a meeting status section");
+  assert.ok(queueServer.includes("フェーズ"), "blackboard should show phase");
+  assert.ok(queueServer.includes("次の一手"), "blackboard should show next action");
+  assert.ok(queueServer.includes("完了条件"), "blackboard should show completion checks");
+  assert.ok(queueServer.includes("renderCompletionCheck"), "completion checklist should be generated centrally");
+});

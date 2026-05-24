@@ -19,6 +19,15 @@ const MEMBER_LABELS = {
   nagato: "長門",
 };
 
+const PHASE_LABELS = {
+  clarifying: "確認中",
+  shared: "共有済み",
+  discussing: "議論中",
+  waiting: "返答待ち",
+  ready_to_return: "提出準備",
+  done: "完了",
+};
+
 const PANE_TARGETS = {
   eru: [`${NOTICEBOARD_SESSION}.0`, `${CLUBROOM_SESSION}.4`],
   haruhi: [`${CLUBROOM_SESSION}.0`],
@@ -61,6 +70,26 @@ export function paneTitle(target, holder) {
   return `● ${baseTitle}`;
 }
 
+export function meetingSummary(meeting) {
+  if (!meeting || typeof meeting !== "object") {
+    return {
+      phase: "なし",
+      holder: "なし",
+      nextAction: "なし",
+    };
+  }
+
+  const holder = currentBallHolder(meeting);
+  const phase = PHASE_LABELS[meeting.phase] || String(meeting.phase || "なし");
+  const nextAction = String(meeting.progress?.next_action || "なし").trim() || "なし";
+
+  return {
+    phase,
+    holder: holder ? MEMBER_LABELS[holder] || holder : "なし",
+    nextAction,
+  };
+}
+
 function tmux(args) {
   try {
     execFileSync("tmux", args, { stdio: "ignore" });
@@ -88,13 +117,21 @@ export function applyHighlight(holder) {
   tmux(["set-option", "-t", CLUBROOM_SESSION, "status-right", ` ボール: ${label} `]);
 }
 
+export function applyStatusSummary(summary) {
+  if (!tmuxSessionExists(CLUBROOM_SESSION)) return;
+  const status = ` phase:${summary.phase} | ball:${summary.holder} | next:${summary.nextAction} `;
+  tmux(["set-option", "-t", CLUBROOM_SESSION, "status-right", status.slice(0, 180)]);
+}
+
 function main() {
   const meeting = readMeetingState();
   const holder = currentBallHolder(meeting);
   applyHighlight(holder);
+  applyStatusSummary(meetingSummary(meeting));
 
   if (process.argv.includes("--print")) {
-    console.log(holder || "none");
+    const summary = meetingSummary(meeting);
+    console.log(`${holder || "none"}\t${summary.phase}\t${summary.nextAction}`);
   }
 }
 
