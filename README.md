@@ -43,6 +43,14 @@ export OBSIDIAN_USURAHI_DIR="$HOME/path/to/your/vault/薄氷"
 
 普段の入口はこの3つです。
 
+```bash
+./usurahi.sh
+```
+
+受付から、会議・掲示板・図書館・状態確認へ進めます。
+
+既存の入口を直接使うなら:
+
 ```text
 /kaigi
 /board
@@ -60,6 +68,7 @@ tmux attach -t clubroom
 CLI から直接使う:
 
 ```bash
+bash ./usurahi.sh status
 bash ./meeting.sh
 bash ./board.sh list
 bash ./ribrary.sh
@@ -107,6 +116,7 @@ npm run autopilot:stop
 
 - 全体像: [usurahi_school_life_vision.md](./usurahi_school_life_vision.md)
 - 使い方の流れ: [usage_flow.md](./usage_flow.md)
+- 受付UX設計: [docs/reception-ux.md](./docs/reception-ux.md)
 - 設計の土台: [usurahi_design_foundation.md](./usurahi_design_foundation.md)
 - セキュリティと自律性: [security_and_autonomy.md](./security_and_autonomy.md)
 - 公開前チェックリスト: [docs/publication-checklist.md](./docs/publication-checklist.md)
