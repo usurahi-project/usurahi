@@ -48,6 +48,11 @@ export OBSIDIAN_USURAHI_DIR="$HOME/path/to/your/vault/薄氷"
 ```
 
 受付から、会議・掲示板・図書館・状態確認へ進めます。
+初めてなら、先にチュートリアルを見る。
+
+```bash
+./usurahi.sh tutorial
+```
 
 既存の入口を直接使うなら:
 
@@ -115,6 +120,7 @@ npm run autopilot:stop
 ## 詳細
 
 - 全体像: [usurahi_school_life_vision.md](./usurahi_school_life_vision.md)
+- チュートリアル: [docs/tutorial.md](./docs/tutorial.md)
 - 使い方の流れ: [usage_flow.md](./usage_flow.md)
 - 受付UX設計: [docs/reception-ux.md](./docs/reception-ux.md)
 - 設計の土台: [usurahi_design_foundation.md](./usurahi_design_foundation.md)

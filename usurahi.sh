@@ -8,6 +8,7 @@ usage() {
   cat <<'EOF'
 Usage:
   ./usurahi.sh
+  ./usurahi.sh tutorial
   ./usurahi.sh start [--all|--clean|--setup]
   ./usurahi.sh status
   ./usurahi.sh board [args...]
@@ -19,6 +20,7 @@ Description:
   薄氷の受付。会議、掲示板、図書館、状態確認への単一入口。
 
 Examples:
+  ./usurahi.sh tutorial
   ./usurahi.sh start
   ./usurahi.sh status
   ./usurahi.sh board add "あとで考えたい論点"
@@ -69,6 +71,12 @@ EOF
 
 meeting_summary() {
   node "$BASEDIR/scripts/meeting-highlight.mjs" --print 2>/dev/null || true
+}
+
+show_tutorial() {
+  say "薄氷の全体像を3分で案内します。"
+  echo ""
+  cat "$BASEDIR/docs/tutorial.md"
 }
 
 has_active_meeting() {
@@ -177,6 +185,9 @@ main() {
     start)
       shift
       start_meeting "${1:-}"
+      ;;
+    tutorial|onboarding)
+      show_tutorial
       ;;
     room|clubroom)
       open_clubroom
