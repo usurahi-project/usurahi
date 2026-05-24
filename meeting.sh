@@ -208,10 +208,10 @@ setup_sessions() {
     tmux set-option -t "$CLUBROOM_SESSION" pane-border-format " #{pane_title} "
     tmux set-option -t "$CLUBROOM_SESSION" pane-border-status top
 
-    # 黒板ペインは blackboard.md を定期表示する
+    # 黒板ペインは blackboard.md を定期表示し、会話のボール保持者をハイライトする
     tmux send-keys -t "${CLUBROOM_SESSION}.2" C-c
     tmux send-keys -t "${CLUBROOM_SESSION}.2" C-u
-    tmux send-keys -t "${CLUBROOM_SESSION}.2" "while true; do clear; cat '$BASEDIR/blackboard.md'; sleep 2; done" Enter
+    tmux send-keys -t "${CLUBROOM_SESSION}.2" "while true; do node '$BASEDIR/scripts/meeting-highlight.mjs'; clear; cat '$BASEDIR/blackboard.md'; sleep 2; done" Enter
 
     # える表示ペインは noticeboard の様子を定期表示する
     tmux send-keys -t "${CLUBROOM_SESSION}.4" C-c
