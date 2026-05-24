@@ -15,7 +15,7 @@
     "school:status": "node ./scripts/generate-school-status.mjs",
     "dashboard:dev": "npm --prefix ./dashboard run dev",
     "dashboard:build": "node ./scripts/generate-school-status.mjs && npm --prefix ./dashboard run build && node ./scripts/publish-school-dashboard.mjs",
-    "test": "node --import tsx --test test/*.test.ts",
+    "test": "node --import tsx --test test/*.test.ts && npm --prefix ./dashboard test",
     "typecheck": "tsc --noEmit",
     "library:add": "tsx scripts/library-add.ts",
     "meeting:highlight": "node scripts/meeting-highlight.mjs --print"
