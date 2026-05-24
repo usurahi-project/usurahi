@@ -1,0 +1,35 @@
+name: Bug report
+description: 動作不良や回帰を報告する
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: 何が起きたかを短く書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: 本来どうなるべきでしたか。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: 再現手順があれば書いてください。
+      placeholder: |
+        1.
+        2.
+        3.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: 秘密情報を含めずに貼れる範囲でお願いします。
+      render: text
