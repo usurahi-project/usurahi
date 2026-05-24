@@ -21,7 +21,8 @@
     "library:add": "tsx scripts/library-add.ts",
     "meeting:liveness": "node scripts/conversation-liveness.mjs",
     "meeting:highlight": "node scripts/meeting-highlight.mjs --print",
-    "reception:status": "bash ./usurahi.sh status"
+    "reception:status": "bash ./usurahi.sh status",
+    "tutorial": "bash ./usurahi.sh tutorial"
   },
   "keywords": [],
   "author": "",
