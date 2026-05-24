@@ -88,6 +88,44 @@ function formatBoardValue(value, { empty = "---", fallback = "なし" } = {}) {
   return String(value);
 }
 
+function formatProgressLabel(value) {
+  const labels = {
+    eru: "える",
+    haruhi: "ハルヒ",
+    oreki: "折木",
+    kyon: "キョン",
+    nagato: "長門",
+    requester: "依頼者",
+    requester_input: "依頼者",
+  };
+  const normalized = String(value || "").trim();
+  return labels[normalized] || normalized || "---";
+}
+
+function formatPhaseLabel(value) {
+  const labels = {
+    clarifying: "確認中",
+    shared: "共有済み",
+    discussing: "議論中",
+    waiting: "返答待ち",
+    ready_to_return: "提出準備",
+    done: "完了",
+  };
+  const normalized = String(value || "").trim();
+  return labels[normalized] || normalized || "---";
+}
+
+function renderCompletionCheck(check = {}) {
+  const rows = [
+    ["scoped", "範囲"],
+    ["direction_set", "方向"],
+    ["feasibility_checked", "可否"],
+    ["expectation_matched", "期待値"],
+    ["ready_to_return", "提出準備"],
+  ];
+  return rows.map(([key, label]) => `${check[key] ? "✓" : "□"} ${label}`).join(" / ");
+}
+
 function renderBlackboard(meeting) {
   if (!meeting) {
     return `# 黒板
@@ -141,9 +179,20 @@ function renderBlackboard(meeting) {
   const posted = meeting.what?.submission?.posted;
   const memo = board.memo;
   const updatedAt = meeting.log?.updated_at || "---";
+  const progress = meeting.progress || {};
+  const statusLines = [
+    `- フェーズ: ${formatPhaseLabel(meeting.phase)}`,
+    `- ボール: ${formatProgressLabel(progress.waiting_for || progress.owner)}`,
+    `- 進行役: ${formatProgressLabel(progress.owner)}`,
+    `- 次の一手: ${formatBoardValue(progress.next_action, { empty: "---" })}`,
+    `- 完了条件: ${renderCompletionCheck(progress.completion_check)}`,
+  ].join("\n");
 
   return `# 黒板
 最終更新: ${updatedAt}
+
+## 🟨 会議ステータス
+${statusLines}
 
 ## 📌 依頼
 ${formatBoardValue(request, { empty: "なし" })}
