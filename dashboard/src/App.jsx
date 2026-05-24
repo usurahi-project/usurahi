@@ -12,10 +12,35 @@ const EMPTY_STATUS = {
     last_maintenance: "",
   },
   noticeboard: { total_posts: 0, open_posts: 0, latest_open_posts: [] },
+  meeting: {
+    active: false,
+    id: "",
+    phase: "",
+    phase_label: "未開始",
+    owner: "",
+    owner_label: "",
+    waiting_for: "",
+    waiting_for_label: "",
+    ball_holder: "",
+    ball_holder_label: "なし",
+    next_action: "",
+    request: "",
+    conclusion: "",
+    updated_at: "",
+    completion_checks: [],
+  },
   school_watch: { last_checked_at: "", age_minutes: null, source_errors: [] },
   school_cycle: { tasks: [] },
   links: { vault_dashboard_html: "", vault_dashboard_dir: "" },
 };
+
+const MEMBERS = [
+  { id: "eru", name: "える", role: "受付・結論化" },
+  { id: "haruhi", name: "ハルヒ", role: "発火・方向づけ" },
+  { id: "oreki", name: "折木", role: "抽出・最小案" },
+  { id: "kyon", name: "キョン", role: "制動・出口確認" },
+  { id: "nagato", name: "長門", role: "可否判断・実装" },
+];
 
 function formatTime(value) {
   if (!value) return "未記録";
@@ -46,6 +71,67 @@ function Card({ title, tone = "ok", value, note, children }) {
       </div>
       {note ? <p className="note">{note}</p> : null}
       {children}
+    </section>
+  );
+}
+
+function ClubroomView({ meeting }) {
+  const doneCount = meeting.completion_checks.filter((item) => item.done).length;
+  const totalCount = meeting.completion_checks.length || 5;
+
+  return (
+    <section className="clubroom">
+      <div className="clubroom-main">
+        <div className="clubroom-head">
+          <div>
+            <p className="eyebrow">部室ビュー</p>
+            <h2>{meeting.active ? meeting.phase_label : "部会はまだ始まっていない"}</h2>
+          </div>
+          <div className={`phase-badge ${meeting.active ? "is-active" : ""}`}>
+            {meeting.active ? `ボール: ${meeting.ball_holder_label}` : "待機中"}
+          </div>
+        </div>
+
+        <div className="member-row">
+          {MEMBERS.map((member) => {
+            const isHolder = meeting.ball_holder === member.id;
+            const isOwner = meeting.owner === member.id;
+            return (
+              <article key={member.id} className={`member ${isHolder ? "member-hot" : ""}`}>
+                <div className="member-mark">{isHolder ? "●" : isOwner ? "◐" : "○"}</div>
+                <div>
+                  <h3>{member.name}</h3>
+                  <p>{member.role}</p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+
+      <aside className="clubroom-side">
+        <div className="next-action">
+          <span>次の一手</span>
+          <strong>{meeting.next_action || "未設定"}</strong>
+        </div>
+        <div className="request-box">
+          <span>依頼</span>
+          <p>{meeting.request || "依頼なし"}</p>
+        </div>
+        <div className="checks">
+          <div className="checks-head">
+            <span>完了条件</span>
+            <strong>{doneCount}/{totalCount}</strong>
+          </div>
+          <div className="check-grid">
+            {meeting.completion_checks.map((item) => (
+              <span key={item.id} className={item.done ? "check done" : "check"}>
+                {item.done ? "✓" : "□"} {item.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </aside>
     </section>
   );
 }
@@ -111,6 +197,8 @@ function App() {
           <span>{error}</span>
         </section>
       ) : null}
+
+      <ClubroomView meeting={status.meeting} />
 
       <section className="grid grid-primary">
         <Card
