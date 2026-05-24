@@ -110,4 +110,6 @@ npm run autopilot:stop
 - 設計の土台: [usurahi_design_foundation.md](./usurahi_design_foundation.md)
 - セキュリティと自律性: [security_and_autonomy.md](./security_and_autonomy.md)
 - 公開前チェックリスト: [docs/publication-checklist.md](./docs/publication-checklist.md)
+- 公開情報レビュー: [docs/public-information-review.md](./docs/public-information-review.md)
+- コントリビューション: [CONTRIBUTING.md](./CONTRIBUTING.md)
 - 校則: [school-rules/README.md](./school-rules/README.md)

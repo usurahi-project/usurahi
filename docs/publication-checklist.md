@@ -15,12 +15,16 @@ GitHubで公開する前に確認する項目。
 ## Files
 
 - `README.md` is short enough for first-time readers
+- `LICENSE` exists and matches `package.json`
+- `CONTRIBUTING.md` explains local checks and PR expectations
+- `CODE_OF_CONDUCT.md` sets public interaction expectations
 - `SECURITY.md` explains where vulnerability reports should go
 - `.github/workflows/ci.yml` runs typecheck, tests, dashboard build, and e2e
 - `.github/workflows/codeql.yml` runs JavaScript/TypeScript analysis
 - `.github/workflows/dependency-review.yml` blocks high-severity dependency changes
 - `.github/dependabot.yml` opens dependency update PRs
 - Issue and PR templates guide public contributions
+- `docs/public-information-review.md` documents what is safe to publish
 
 ## Release hygiene
 
