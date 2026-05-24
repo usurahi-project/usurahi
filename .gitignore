@@ -14,6 +14,8 @@ sample-project/node_modules/
 dashboard/node_modules/
 dashboard/dist/
 dashboard/public/school-status.json
+dashboard/playwright-report/
+dashboard/test-results/
 
 # Logs
 logs/
