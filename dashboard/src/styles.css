@@ -1,4 +1,13 @@
 :root {
+  --ratio: 1.618;
+  --space-1: 0.382rem;
+  --space-2: 0.618rem;
+  --space-3: 1rem;
+  --space-4: 1.618rem;
+  --space-5: 2.618rem;
+  --radius-1: 0.618rem;
+  --radius-2: 1rem;
+  --radius-3: 1.618rem;
   --bg: #f6f2e8;
   --bg-strong: #dbe7df;
   --ink: #1f2a26;
@@ -11,7 +20,8 @@
   --ok: #2d6a4f;
   --warn: #c97d12;
   --alert: #ae3f33;
-  --shadow: 0 24px 64px rgba(35, 28, 16, 0.18);
+  --shadow: 0 1.618rem 4.236rem rgba(35, 28, 16, 0.18);
+  --shadow-soft: 0 1rem 2.618rem rgba(44, 62, 55, 0.1);
 }
 
 * {
@@ -34,9 +44,9 @@ body {
 
 .screen {
   width: min(1380px, calc(100% - 32px));
-  margin: 24px auto 48px;
-  padding: 22px;
-  border-radius: 28px;
+  margin: var(--space-4) auto calc(var(--space-5) + var(--space-3));
+  padding: calc(var(--space-3) + var(--space-1));
+  border-radius: var(--space-5);
   background:
     linear-gradient(180deg, rgba(255, 251, 242, 0.92), rgba(247, 240, 224, 0.9)),
     var(--bg);
@@ -47,9 +57,9 @@ body {
 .hero {
   display: grid;
   grid-template-columns: 1.7fr 1fr;
-  gap: 20px;
-  padding: 26px;
-  border-radius: 24px;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
   color: #f6eed9;
   background:
     linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
@@ -64,7 +74,7 @@ body {
 }
 
 .eyebrow {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 12px;
@@ -80,20 +90,20 @@ body {
 
 .lead {
   max-width: 54ch;
-  margin: 14px 0 0;
+  margin: var(--space-3) 0 0;
   color: rgba(248, 240, 219, 0.92);
   line-height: 1.7;
 }
 
 .hero-meta {
   display: grid;
-  gap: 14px;
+  gap: var(--space-3);
   align-content: start;
 }
 
 .stamp {
-  padding: 18px 20px;
-  border-radius: 18px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-3);
   background: rgba(251, 246, 233, 0.1);
   border: 1px solid rgba(255, 244, 211, 0.14);
   backdrop-filter: blur(6px);
@@ -109,15 +119,15 @@ body {
 
 .stamp strong {
   display: block;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   font-size: 1rem;
   line-height: 1.5;
 }
 
 .banner {
-  margin-top: 16px;
-  padding: 14px 18px;
-  border-radius: 16px;
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-2);
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -132,21 +142,21 @@ body {
 .clubroom {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
-  gap: 16px;
-  margin-top: 18px;
-  padding: 18px;
-  border-radius: 22px;
+  gap: var(--space-3);
+  margin-top: calc(var(--space-3) + var(--space-1));
+  padding: calc(var(--space-3) + var(--space-1));
+  border-radius: var(--radius-3);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(236, 246, 241, 0.88)),
     var(--card);
   border: 1px solid rgba(49, 95, 114, 0.16);
-  box-shadow: 0 14px 36px rgba(44, 62, 55, 0.1);
+  box-shadow: var(--shadow-soft);
 }
 
 .clubroom-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
 }
 
@@ -162,7 +172,7 @@ body {
 
 .phase-badge {
   flex: 0 0 auto;
-  padding: 10px 12px;
+  padding: var(--space-2) var(--space-3);
   border-radius: 999px;
   background: rgba(82, 97, 88, 0.12);
   color: var(--ink-soft);
@@ -177,19 +187,19 @@ body {
 .member-row {
   display: grid;
   grid-template-columns: repeat(5, minmax(120px, 1fr));
-  gap: 10px;
-  margin-top: 16px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .member {
   min-height: 104px;
-  padding: 14px;
-  border-radius: 16px;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
   background: rgba(255, 253, 247, 0.88);
   border: 1px solid rgba(55, 43, 23, 0.08);
   display: grid;
   align-content: start;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .member-hot {
@@ -210,21 +220,21 @@ body {
 
 .member p,
 .request-box p {
-  margin: 6px 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--ink-soft);
   line-height: 1.5;
 }
 
 .clubroom-side {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .next-action,
 .request-box,
 .checks {
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
   background: rgba(247, 251, 249, 0.86);
   border: 1px solid rgba(49, 95, 114, 0.12);
 }
@@ -240,7 +250,7 @@ body {
 
 .next-action strong {
   display: block;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   color: var(--accent);
   font-size: 1.05rem;
   line-height: 1.4;
@@ -250,18 +260,18 @@ body {
 .checks-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .check-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .check {
-  padding: 7px 9px;
+  padding: calc(var(--space-1) + 1px) var(--space-2);
   border-radius: 999px;
   background: rgba(82, 97, 88, 0.1);
   color: var(--ink-soft);
@@ -276,8 +286,8 @@ body {
 
 .grid {
   display: grid;
-  gap: 16px;
-  margin-top: 18px;
+  gap: var(--space-3);
+  margin-top: calc(var(--space-3) + var(--space-1));
 }
 
 .grid-primary {
@@ -292,16 +302,16 @@ body {
 .panel {
   background: var(--card);
   border: 1px solid rgba(55, 43, 23, 0.08);
-  border-radius: 22px;
-  padding: 18px 20px;
-  box-shadow: 0 10px 30px rgba(62, 44, 17, 0.08);
+  border-radius: var(--radius-3);
+  padding: calc(var(--space-3) + var(--space-1)) var(--space-4);
+  box-shadow: 0 0.618rem 1.618rem rgba(62, 44, 17, 0.08);
 }
 
 .card-head,
 .panel-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: baseline;
 }
 
@@ -322,7 +332,7 @@ body {
 .panel-head p,
 .task p,
 .post p {
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--ink-soft);
   line-height: 1.6;
 }
@@ -340,7 +350,7 @@ body {
 }
 
 .logline {
-  margin: 14px 0 0;
+  margin: var(--space-3) 0 0;
   white-space: pre-wrap;
   font-family: "SF Mono", "Menlo", monospace;
   font-size: 0.94rem;
@@ -349,19 +359,19 @@ body {
 }
 
 .stack p {
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .task-list,
 .post-list {
   display: grid;
-  gap: 12px;
-  margin-top: 14px;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
 .task {
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
   background: rgba(247, 241, 228, 0.9);
   border: 1px solid rgba(74, 58, 32, 0.08);
 }
@@ -381,8 +391,8 @@ body {
 }
 
 .post {
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
   background:
     linear-gradient(180deg, rgba(255, 252, 245, 0.95), rgba(247, 242, 231, 0.92));
   border: 1px solid rgba(64, 50, 27, 0.08);
@@ -391,7 +401,7 @@ body {
 .post-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-2);
   font-size: 0.8rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -418,16 +428,16 @@ body {
 @media (max-width: 640px) {
   .screen {
     width: min(100% - 20px, 100%);
-    margin: 10px auto 24px;
-    padding: 12px;
-    border-radius: 20px;
+    margin: var(--space-2) auto var(--space-4);
+    padding: var(--space-2);
+    border-radius: var(--radius-3);
   }
 
   .hero,
   .clubroom,
   .card,
   .panel {
-    padding: 16px;
+    padding: var(--space-3);
   }
 
   .clubroom-head {
