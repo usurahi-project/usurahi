@@ -129,3 +129,13 @@ test("security defaults do not force permission bypass", async () => {
   assert.ok(notify.includes("USURAHI_DANGEROUS_SKIP_PERMISSIONS"), "notify.sh should gate permission bypass by env");
   assert.ok(!libraryRun.includes("--dangerously-skip-permissions"), "library-run should not bypass permissions for summarization");
 });
+
+test("meeting setup wires tmux highlight refresh into the blackboard loop", async () => {
+  const meeting = await readRepoFile("meeting.sh");
+  const readme = await readRepoFile("README.md");
+  const packageJson = await readRepoFile("package.json");
+
+  assert.ok(meeting.includes("scripts/meeting-highlight.mjs"), "meeting.sh should refresh the ball holder highlight");
+  assert.ok(readme.includes("● 名前"), "README should document the highlight marker");
+  assert.ok(packageJson.includes("meeting:highlight"), "package.json should expose a manual highlight command");
+});
