@@ -1,0 +1,27 @@
+name: ready to return user wait
+description: 部内の検討が終わり、ユーザーの判断待ちとして止まってよい状態。
+meeting:
+  id: meeting-ready-to-return-user-wait
+  phase: ready_to_return
+  status: active
+  progress:
+    owner: eru
+    waiting_for: requester_input
+    next_action: wait_for_user_decision
+    completion_check:
+      scoped: true
+      direction_set: true
+      feasibility_checked: true
+      expectation_matched: true
+      ready_to_return: true
+  log:
+    updated_at: "2026-05-24T03:00:00.000Z"
+options:
+  now: "2026-05-24T12:00:00.000Z"
+  stale_after_minutes: 60
+expect:
+  ok: true
+  holder: eru
+  waiting_for: requester_input
+  next_action: wait_for_user_decision
+  finding_codes: []

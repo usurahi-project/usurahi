@@ -1,0 +1,28 @@
+name: stale internal wait
+description: 部員待ちのまま長時間更新されず、会話が詰まっている状態。
+meeting:
+  id: meeting-stale-internal-wait
+  phase: discussing
+  status: active
+  progress:
+    owner: eru
+    waiting_for: oreki
+    next_action: extract_minimal_plan
+    completion_check:
+      scoped: true
+      direction_set: true
+      feasibility_checked: false
+      expectation_matched: false
+      ready_to_return: false
+  log:
+    updated_at: "2026-05-24T03:00:00.000Z"
+options:
+  now: "2026-05-24T12:00:00.000Z"
+  stale_after_minutes: 60
+expect:
+  ok: false
+  holder: oreki
+  waiting_for: oreki
+  next_action: extract_minimal_plan
+  finding_codes:
+    - stale_internal_wait

@@ -138,6 +138,15 @@ npm test
 
 `npm test` では、図書室キューの挙動に加えて、ペルソナの役割境界や安全側のデフォルトも検査する。
 
+会議が止まっていないかだけを見たい時は、現在の `queue/gijiroku.yaml` に対して liveness チェックを実行する。
+
+```bash
+npm run meeting:liveness
+```
+
+会話が止まる失敗を見つけたら、`conversation-failures/README.md` に記録し、再現できるものは `fixtures/conversations/` に昇格する。
+fixture は `test/conversation_fixtures.test.ts` で検査されるため、同じ型の失敗を回帰テストとして固定できる。
+
 ### 自動運転
 
 学校生活を止めずに回したいなら、先に autopilot を上げる。

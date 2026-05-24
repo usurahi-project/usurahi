@@ -1,0 +1,27 @@
+name: missing next action
+description: ボール保持者は分かるが、次の一手が空で会話が進められない状態。
+meeting:
+  id: meeting-missing-next-action
+  phase: discussing
+  status: active
+  progress:
+    owner: kyon
+    waiting_for: oreki
+    next_action: ""
+    completion_check:
+      scoped: true
+      direction_set: true
+      feasibility_checked: false
+      expectation_matched: false
+      ready_to_return: false
+  log:
+    updated_at: "2026-05-24T03:00:00.000Z"
+options:
+  now: "2026-05-24T03:05:00.000Z"
+expect:
+  ok: false
+  holder: oreki
+  waiting_for: oreki
+  next_action: ""
+  finding_codes:
+    - missing_next_action
