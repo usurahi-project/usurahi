@@ -17,7 +17,7 @@ SOS団と古典部の合同部活として、依頼を「今の部としての�
 3. 全員が毎回前に出る必要はない
 4. 表は世界観、裏は実装名で分ける
 5. 返答回収は通知を基本とし、常時ポーリングしない
-6. `ready_to_return` は結論だけでなく、依頼の期待値と成果物が一致した時だけ立てる
+6. `ready_to_return` は依頼者へ返せる状態でだけ立てる。返答文の準備中は `preparing_response` を使う
 
 ## 会議状態の最小定義
 
@@ -27,11 +27,15 @@ SOS団と古典部の合同部活として、依頼を「今の部としての�
 - `progress.next_action`: 次にやる一手
 - `progress.completion_check`: 提出条件の確認
 
+会議状態を動かす時は、汎用の `update_meeting` ではなく検証付きの `update_progress` を使う。
+
 重要:
 
 - `owner` はボール保持者
 - `waiting_for` は返答待ちの相手
 - `waiting_for: eru` は使わない
+- `preparing_response` は `owner: kyon` / `waiting_for: null`
+- `ready_to_return` は `waiting_for: requester` または `requester_input`
 - 部員は返答後に状態を返球し、えるへ短く知らせる
 
 ## 起動時

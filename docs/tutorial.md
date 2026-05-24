@@ -59,8 +59,10 @@ tmux attach -t clubroom
 
 ```bash
 ./usurahi.sh tutorial
+./usurahi.sh start --setup
 ./usurahi.sh start
 ```
 
 使い方だけ見たい時は `tutorial`。
+部室だけ安全に開いて試すなら `start --setup`。
 すぐ始める時は `start`。

@@ -18,6 +18,10 @@ const QUEUE = path.join(BASEDIR, "queue");
 const DEFAULT_OBSIDIAN_USURAHI = path.join(process.env.HOME || "", "Documents", "Obsidian Vault", "薄氷");
 const OBSIDIAN_USURAHI = process.env.OBSIDIAN_USURAHI_DIR || DEFAULT_OBSIDIAN_USURAHI;
 const OBSIDIAN_FOLDERS = { archive: "図書館/薄氷バックナンバー", activity_log: "部室/活動記録", library: "図書館/開架" };
+const MEMBER_IDS = ["eru", "haruhi", "oreki", "kyon", "nagato"];
+const WAITING_FOR_IDS = [...MEMBER_IDS, "requester", "requester_input"];
+const PHASE_IDS = ["clarifying", "shared", "discussing", "waiting", "preparing_response", "ready_to_return", "done"];
+const COMPLETION_KEYS = ["scoped", "direction_set", "feasibility_checked", "expectation_matched", "ready_to_return"];
 
 // ── helpers ──
 
@@ -108,7 +112,8 @@ function formatPhaseLabel(value) {
     shared: "共有済み",
     discussing: "議論中",
     waiting: "返答待ち",
-    ready_to_return: "提出準備",
+    preparing_response: "返答準備",
+    ready_to_return: "依頼者確認",
     done: "完了",
   };
   const normalized = String(value || "").trim();
@@ -271,6 +276,39 @@ function ensureMeetingProgressDefaults(meeting) {
   }
 
   return meeting;
+}
+
+function validateProgressState(meeting) {
+  const errors = [];
+  const phase = String(meeting.phase || "").trim();
+  const progress = meeting.progress || {};
+  const owner = String(progress.owner || "").trim();
+  const waitingFor = progress.waiting_for === null || progress.waiting_for === undefined ? "" : String(progress.waiting_for).trim();
+  const nextAction = String(progress.next_action || "").trim();
+  const completion = progress.completion_check || {};
+
+  if (!PHASE_IDS.includes(phase)) errors.push(`phase must be one of: ${PHASE_IDS.join(", ")}`);
+  if (!MEMBER_IDS.includes(owner)) errors.push(`progress.owner must be one of: ${MEMBER_IDS.join(", ")}`);
+  if (waitingFor && !WAITING_FOR_IDS.includes(waitingFor)) {
+    errors.push(`progress.waiting_for must be one of: ${WAITING_FOR_IDS.join(", ")}, or null`);
+  }
+  if (!nextAction) errors.push("progress.next_action is required");
+  for (const key of COMPLETION_KEYS) {
+    if (typeof completion[key] !== "boolean") errors.push(`progress.completion_check.${key} must be boolean`);
+  }
+  if (phase === "preparing_response" && owner !== "kyon") {
+    errors.push("preparing_response must set progress.owner to kyon");
+  }
+  if (phase === "preparing_response" && waitingFor) {
+    errors.push("preparing_response must set progress.waiting_for to null");
+  }
+  if (phase === "ready_to_return" && !["requester", "requester_input"].includes(waitingFor)) {
+    errors.push("ready_to_return must set progress.waiting_for to requester or requester_input");
+  }
+  if (phase === "ready_to_return" && completion.ready_to_return !== true) {
+    errors.push("ready_to_return must set progress.completion_check.ready_to_return to true");
+  }
+  return errors;
 }
 
 function writeObsidianNote({ category, title, content, tags = [], related = [] }) {
@@ -815,7 +853,7 @@ server.tool(
 
 server.tool(
   "update_meeting",
-  "部会データ(gijiroku.yaml)の指定フィールドを更新する。会議フェーズの状態を記録する時に使う。",
+  "部会データ(gijiroku.yaml)の指定フィールドを更新する。phase/progress は update_progress を使う。",
   {
     field: z
       .string()
@@ -823,6 +861,17 @@ server.tool(
     value: z.string().describe("設定する値（YAML文字列として解釈される）"),
   },
   async ({ field, value }) => {
+    if (field === "phase" || field.startsWith("progress.")) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "エラー: phase/progress は update_progress で更新してください",
+          },
+        ],
+      };
+    }
+
     const filePath = path.join(QUEUE, "gijiroku.yaml");
     const data = readYaml(filePath) || { meeting: null };
     if (!data.meeting || typeof data.meeting !== "object" || data.meeting.status === "closed") {
@@ -861,6 +910,60 @@ server.tool(
     writeYaml(filePath, data);
     syncBlackboardFromMeeting(data.meeting);
     return { content: [{ type: "text", text: `meeting.${field} を更新完了` }] };
+  }
+);
+
+// ── 8b. update_progress ──
+
+server.tool(
+  "update_progress",
+  "部会の phase と progress を検証付きで更新する。会話のボール、次の一手、完了条件を進める時に使う。",
+  {
+    phase: z.enum(PHASE_IDS).optional().describe("会議フェーズ"),
+    owner: z.enum(MEMBER_IDS).optional().describe("進行責任を持つ部員"),
+    waiting_for: z.enum(WAITING_FOR_IDS).nullable().optional().describe("返答待ちの相手。えるへ返す時は null"),
+    next_action: z.string().min(1).optional().describe("次の一手"),
+    completion_check: z
+      .object({
+        scoped: z.boolean().optional(),
+        direction_set: z.boolean().optional(),
+        feasibility_checked: z.boolean().optional(),
+        expectation_matched: z.boolean().optional(),
+        ready_to_return: z.boolean().optional(),
+      })
+      .optional()
+      .describe("完了条件の差分"),
+  },
+  async ({ phase, owner, waiting_for, next_action, completion_check }) => {
+    const filePath = path.join(QUEUE, "gijiroku.yaml");
+    const data = readYaml(filePath) || { meeting: null };
+    if (!data.meeting || typeof data.meeting !== "object" || data.meeting.status === "closed") {
+      return { content: [{ type: "text", text: "エラー: 更新対象のアクティブな部会がない" }] };
+    }
+
+    const meeting = ensureMeetingProgressDefaults(data.meeting);
+    if (phase !== undefined) meeting.phase = phase;
+    if (owner !== undefined) meeting.progress.owner = owner;
+    if (waiting_for !== undefined) meeting.progress.waiting_for = waiting_for;
+    if (next_action !== undefined) meeting.progress.next_action = next_action;
+    if (completion_check !== undefined) {
+      meeting.progress.completion_check = {
+        ...meeting.progress.completion_check,
+        ...completion_check,
+      };
+    }
+
+    const errors = validateProgressState(meeting);
+    if (errors.length > 0) {
+      return { content: [{ type: "text", text: `エラー: progress validation failed\n${errors.map((error) => `- ${error}`).join("\n")}` }] };
+    }
+
+    if (!meeting.log) meeting.log = { created_at: timestamp(), updated_at: timestamp() };
+    meeting.log.updated_at = timestamp();
+    data.meeting = meeting;
+    writeYaml(filePath, data);
+    syncBlackboardFromMeeting(meeting);
+    return { content: [{ type: "text", text: "meeting.progress を更新完了" }] };
   }
 );
 

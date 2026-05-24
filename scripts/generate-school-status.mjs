@@ -156,7 +156,8 @@ function phaseLabel(phase) {
     shared: "共有済み",
     discussing: "議論中",
     waiting: "返答待ち",
-    ready_to_return: "提出準備",
+    preparing_response: "返答準備",
+    ready_to_return: "依頼者確認",
     done: "完了",
   };
   return labels[phase] || phase || "未開始";

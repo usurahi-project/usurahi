@@ -9,7 +9,7 @@
 ## 返球の流れ
 
 1. 部員が返答する
-2. 必要なら会議状態を更新する
+2. 必要なら `update_progress` で会議状態を更新する
 3. `progress.owner` を基本的に `eru` へ戻す
 4. `progress.waiting_for` から自分を外す
 5. えるへ短く知らせる

@@ -17,7 +17,7 @@ const REQUIRED_COMPLETION_KEYS = [
   "expectation_matched",
   "ready_to_return",
 ];
-const KNOWN_PHASES = new Set(["clarifying", "shared", "discussing", "waiting", "ready_to_return", "done"]);
+const KNOWN_PHASES = new Set(["clarifying", "shared", "discussing", "waiting", "preparing_response", "ready_to_return", "done"]);
 
 function text(value) {
   return String(value || "").trim();
@@ -102,6 +102,18 @@ export function validateMeetingLiveness(meeting, options = {}) {
 
   if (phase === "ready_to_return" && !isExternalWait(waitingFor)) {
     findings.push(finding("ready_to_return_not_external", "ready_to_return must hand the ball back to requester/requester_input"));
+  }
+
+  if (phase === "ready_to_return" && isPlainObject(completion) && completion.ready_to_return !== true) {
+    findings.push(finding("ready_to_return_check_missing", "ready_to_return phase must set completion_check.ready_to_return"));
+  }
+
+  if (phase === "preparing_response" && owner !== "kyon") {
+    findings.push(finding("preparing_response_owner", "preparing_response must be owned by kyon"));
+  }
+
+  if (phase === "preparing_response" && waitingFor) {
+    findings.push(finding("preparing_response_waiting", "preparing_response must not wait on another member or requester"));
   }
 
   if (phase === "done" && waitingFor && !isExternalWait(waitingFor)) {

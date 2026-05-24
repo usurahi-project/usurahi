@@ -6,6 +6,7 @@
 - `shared`
 - `discussing`
 - `waiting`
+- `preparing_response`
 - `ready_to_return`
 - `done`
 
@@ -15,7 +16,8 @@
 - 方向が出たら `shared -> discussing`
 - 他者の返答が必要なら `discussing -> waiting`
 - 返答が戻ったら `waiting -> discussing`
-- 依頼の期待値と成果物が一致したら `ready_to_return`
+- 依頼の期待値と成果物が一致し、返答文を整えるなら `preparing_response`
+- 依頼者へ返せる形になったら `ready_to_return`
 - 提出が終わったら `done`
 
 ## 標準分岐
@@ -33,6 +35,8 @@
 - `direction_set: true`
 - 必要なら `feasibility_checked: true`
 - `expectation_matched: true`
+- `ready_to_return: true`
+- `waiting_for: requester` または `requester_input`
 
 ## expectation_matched
 

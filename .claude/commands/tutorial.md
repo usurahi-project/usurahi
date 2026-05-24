@@ -21,4 +21,5 @@
 
 - 長く説明しない
 - 初回に覚えるコマンドは `./usurahi.sh` に絞る
+- 安全に試すなら `./usurahi.sh start --setup` を案内する
 - 詳細を知りたい人には `docs/tutorial.md` を案内する

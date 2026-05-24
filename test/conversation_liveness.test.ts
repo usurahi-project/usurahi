@@ -103,6 +103,51 @@ test("conversation liveness treats requester handoff as valid external waiting",
   assert.equal(result.waitingFor, "requester");
 });
 
+test("conversation liveness accepts kyon preparing the response before requester handoff", async () => {
+  const liveness = await loadLivenessModule();
+  const result = liveness.validateMeetingLiveness(healthyMeeting({
+    phase: "preparing_response",
+    progress: {
+      owner: "kyon",
+      waiting_for: null,
+      next_action: "prepare_response",
+      completion_check: {
+        scoped: true,
+        direction_set: true,
+        feasibility_checked: true,
+        expectation_matched: true,
+        ready_to_return: false,
+      },
+    },
+  }), { now: new Date("2026-05-24T03:05:00.000Z") });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.holder, "kyon");
+  assert.equal(result.waitingFor, "");
+});
+
+test("conversation liveness rejects ready_to_return before requester handoff", async () => {
+  const liveness = await loadLivenessModule();
+  const result = liveness.validateMeetingLiveness(healthyMeeting({
+    phase: "ready_to_return",
+    progress: {
+      owner: "kyon",
+      waiting_for: null,
+      next_action: "prepare_response",
+      completion_check: {
+        scoped: true,
+        direction_set: true,
+        feasibility_checked: true,
+        expectation_matched: true,
+        ready_to_return: true,
+      },
+    },
+  }));
+
+  assert.equal(result.ok, false);
+  assert.ok(result.findings.some((item) => item.code === "ready_to_return_not_external"));
+});
+
 test("conversation liveness catches missing next action and malformed completion checks", async () => {
   const liveness = await loadLivenessModule();
   const result = liveness.validateMeetingLiveness(healthyMeeting({

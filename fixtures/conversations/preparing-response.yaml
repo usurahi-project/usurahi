@@ -1,0 +1,26 @@
+name: preparing response
+description: 部としての結論が揃い、キョンが返答文を整えている状態。
+meeting:
+  id: meeting-preparing-response
+  phase: preparing_response
+  status: active
+  progress:
+    owner: kyon
+    waiting_for: null
+    next_action: prepare_response
+    completion_check:
+      scoped: true
+      direction_set: true
+      feasibility_checked: true
+      expectation_matched: true
+      ready_to_return: false
+  log:
+    updated_at: "2026-05-24T03:00:00.000Z"
+options:
+  now: "2026-05-24T03:05:00.000Z"
+expect:
+  ok: true
+  holder: kyon
+  waiting_for: ""
+  next_action: prepare_response
+  finding_codes: []
