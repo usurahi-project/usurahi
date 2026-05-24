@@ -16,6 +16,7 @@ const LIBRARY_HISTORY_FILE = path.join(BASEDIR, "queue", "library_history.yaml")
 const NOTICEBOARD_FILE = path.join(BASEDIR, "queue", "noticeboard.yaml");
 const NEWS_STATE_FILE = path.join(BASEDIR, "queue", "news_watch_state.yaml");
 const SCHOOL_CYCLE_FILE = path.join(BASEDIR, "queue", "school_cycle_state.yaml");
+const MEETING_FILE = path.join(BASEDIR, "queue", "gijiroku.yaml");
 const MAINTENANCE_LOG = path.join(OBSIDIAN_USURAHI_DIR, "図書館", "摩耶花の整頓記録.md");
 const VAULT_DASHBOARD_DIR = path.join(OBSIDIAN_USURAHI_DIR, "職員室", "dashboard");
 const DASHBOARD_HTML_FILE = path.join(VAULT_DASHBOARD_DIR, "index.html");
@@ -136,6 +137,75 @@ function schoolCycleStatus() {
   return { tasks };
 }
 
+function memberLabel(id) {
+  const labels = {
+    eru: "える",
+    haruhi: "ハルヒ",
+    oreki: "折木",
+    kyon: "キョン",
+    nagato: "長門",
+    requester: "依頼者",
+    requester_input: "依頼者",
+  };
+  return labels[id] || id || "";
+}
+
+function phaseLabel(phase) {
+  const labels = {
+    clarifying: "確認中",
+    shared: "共有済み",
+    discussing: "議論中",
+    waiting: "返答待ち",
+    ready_to_return: "提出準備",
+    done: "完了",
+  };
+  return labels[phase] || phase || "未開始";
+}
+
+function normalizeMember(value) {
+  const member = String(value || "").trim();
+  return ["eru", "haruhi", "oreki", "kyon", "nagato"].includes(member) ? member : "";
+}
+
+function meetingStatus() {
+  const data = readYaml(MEETING_FILE, { meeting: null });
+  const meeting = data.meeting || null;
+  const progress = meeting?.progress || {};
+  const waitingMember = normalizeMember(progress.waiting_for);
+  const ownerMember = normalizeMember(progress.owner);
+  const ballHolder = waitingMember || ownerMember || "";
+  const completion = progress.completion_check || {};
+  const checks = [
+    ["scoped", "範囲"],
+    ["direction_set", "方向"],
+    ["feasibility_checked", "可否"],
+    ["expectation_matched", "期待値"],
+    ["ready_to_return", "提出準備"],
+  ].map(([id, label]) => ({
+    id,
+    label,
+    done: Boolean(completion[id]),
+  }));
+
+  return {
+    active: Boolean(meeting),
+    id: meeting?.id || "",
+    phase: meeting?.phase || "",
+    phase_label: phaseLabel(meeting?.phase),
+    owner: progress.owner || "",
+    owner_label: memberLabel(progress.owner),
+    waiting_for: progress.waiting_for || "",
+    waiting_for_label: memberLabel(progress.waiting_for),
+    ball_holder: ballHolder,
+    ball_holder_label: memberLabel(ballHolder) || "なし",
+    next_action: progress.next_action || "",
+    request: meeting?.blackboard?.request || meeting?.why?.request || "",
+    conclusion: meeting?.blackboard?.conclusion || meeting?.what?.conclusion || "",
+    updated_at: meeting?.log?.updated_at || "",
+    completion_checks: checks,
+  };
+}
+
 function linksStatus() {
   return {
     vault_dashboard_html: path.relative(OBSIDIAN_USURAHI_DIR, DASHBOARD_HTML_FILE),
@@ -150,6 +220,7 @@ function buildStatus() {
     autopilot: autopilotStatus(),
     library: libraryStatus(),
     noticeboard: noticeboardStatus(),
+    meeting: meetingStatus(),
     school_watch: schoolWatchStatus(),
     school_cycle: schoolCycleStatus(),
     links: linksStatus(),

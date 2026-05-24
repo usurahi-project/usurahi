@@ -1,11 +1,13 @@
 :root {
-  --bg: #f4ecdd;
-  --bg-strong: #e8d9bd;
+  --bg: #f6f2e8;
+  --bg-strong: #dbe7df;
   --ink: #1f2a26;
   --ink-soft: #526158;
   --board: #163529;
   --board-line: rgba(236, 228, 205, 0.14);
-  --card: rgba(250, 246, 235, 0.92);
+  --card: rgba(252, 250, 244, 0.94);
+  --accent: #315f72;
+  --accent-soft: #dcebf0;
   --ok: #2d6a4f;
   --warn: #c97d12;
   --alert: #ae3f33;
@@ -20,8 +22,8 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    radial-gradient(circle at top left, rgba(255, 248, 225, 0.75), transparent 28%),
-    linear-gradient(135deg, #efe1c2 0%, #d7c19a 48%, #c6b08b 100%);
+    radial-gradient(circle at top left, rgba(222, 239, 231, 0.72), transparent 28%),
+    linear-gradient(135deg, #eef3ee 0%, #e6d9bc 48%, #cbd9dc 100%);
   color: var(--ink);
   font-family: "Avenir Next", "Hiragino Sans", "Yu Gothic", sans-serif;
 }
@@ -125,6 +127,151 @@ body {
   background: rgba(174, 63, 51, 0.12);
   border: 1px solid rgba(174, 63, 51, 0.22);
   color: #7b241b;
+}
+
+.clubroom {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  gap: 16px;
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(236, 246, 241, 0.88)),
+    var(--card);
+  border: 1px solid rgba(49, 95, 114, 0.16);
+  box-shadow: 0 14px 36px rgba(44, 62, 55, 0.1);
+}
+
+.clubroom-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.clubroom h2 {
+  margin: 0;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 1.55rem;
+}
+
+.clubroom .eyebrow {
+  color: var(--accent);
+}
+
+.phase-badge {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(82, 97, 88, 0.12);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.phase-badge.is-active {
+  background: #263f35;
+  color: #f7efd8;
+}
+
+.member-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.member {
+  min-height: 104px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 253, 247, 0.88);
+  border: 1px solid rgba(55, 43, 23, 0.08);
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.member-hot {
+  border-color: rgba(201, 125, 18, 0.55);
+  background: linear-gradient(180deg, #fff8dd, #fffdf6);
+  box-shadow: inset 0 0 0 2px rgba(201, 125, 18, 0.14);
+}
+
+.member-mark {
+  font-size: 1.15rem;
+  color: var(--warn);
+}
+
+.member h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.member p,
+.request-box p {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.clubroom-side {
+  display: grid;
+  gap: 12px;
+}
+
+.next-action,
+.request-box,
+.checks {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(247, 251, 249, 0.86);
+  border: 1px solid rgba(49, 95, 114, 0.12);
+}
+
+.next-action span,
+.request-box span,
+.checks-head span {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+.next-action strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 1.05rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.checks-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.check-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.check {
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: rgba(82, 97, 88, 0.1);
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.check.done {
+  background: rgba(45, 106, 79, 0.14);
+  color: var(--ok);
 }
 
 .grid {
@@ -257,9 +404,14 @@ body {
 
 @media (max-width: 1120px) {
   .hero,
+  .clubroom,
   .grid-primary,
   .grid-secondary {
     grid-template-columns: 1fr;
+  }
+
+  .member-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -272,9 +424,19 @@ body {
   }
 
   .hero,
+  .clubroom,
   .card,
   .panel {
     padding: 16px;
+  }
+
+  .clubroom-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .member-row {
+    grid-template-columns: 1fr;
   }
 
   .hero h1 {
