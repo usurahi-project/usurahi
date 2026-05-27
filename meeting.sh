@@ -79,39 +79,7 @@ check_prerequisites() {
 }
 
 # --- キューリセット ---
-reset_queues() {
-    dim "キューをリセットしています..."
-
-    cat > "$BASEDIR/queue/noticeboard.yaml" << 'YAML'
-posts: []
-YAML
-
-    cat > "$BASEDIR/queue/room_requests.yaml" << 'YAML'
-requests: []
-YAML
-
-    cat > "$BASEDIR/queue/gijiroku.yaml" << 'YAML'
-meeting: null
-YAML
-
-    for member in oreki kyon nagato; do
-        cat > "$BASEDIR/queue/tasks/${member}.yaml" << YAML
-task: null
-YAML
-        cat > "$BASEDIR/queue/reports/${member}_report.yaml" << YAML
-report: null
-YAML
-    done
-
-    rm -f "$BASEDIR/queue/tasks/koizumi.yaml"
-    rm -f "$BASEDIR/queue/reports/koizumi_report.yaml"
-
-    # 図書館キュー初期化
-    cat > "$BASEDIR/queue/library_queue.yaml" << 'YAML'
-urls: []
-YAML
-
-    # 黒板初期化
+write_default_blackboard() {
     cat > "$BASEDIR/blackboard.md" << 'MD'
 # 黒板
 最終更新: ---
@@ -149,6 +117,75 @@ YAML
 ## 💡 メモ
 なし
 MD
+}
+
+ensure_runtime_state() {
+    mkdir -p "$BASEDIR/queue/tasks" "$BASEDIR/queue/reports"
+
+    [[ -f "$BASEDIR/queue/noticeboard.yaml" ]] || cat > "$BASEDIR/queue/noticeboard.yaml" << 'YAML'
+posts: []
+YAML
+
+    [[ -f "$BASEDIR/queue/room_requests.yaml" ]] || cat > "$BASEDIR/queue/room_requests.yaml" << 'YAML'
+requests: []
+YAML
+
+    [[ -f "$BASEDIR/queue/gijiroku.yaml" ]] || cat > "$BASEDIR/queue/gijiroku.yaml" << 'YAML'
+meeting: null
+YAML
+
+    for member in oreki kyon nagato; do
+        [[ -f "$BASEDIR/queue/tasks/${member}.yaml" ]] || cat > "$BASEDIR/queue/tasks/${member}.yaml" << YAML
+task: null
+YAML
+        [[ -f "$BASEDIR/queue/reports/${member}_report.yaml" ]] || cat > "$BASEDIR/queue/reports/${member}_report.yaml" << YAML
+report: null
+YAML
+    done
+
+    [[ -f "$BASEDIR/queue/library_queue.yaml" ]] || cat > "$BASEDIR/queue/library_queue.yaml" << 'YAML'
+urls: []
+YAML
+
+    [[ -f "$BASEDIR/blackboard.md" ]] || write_default_blackboard
+}
+
+reset_queues() {
+    dim "キューをリセットしています..."
+
+    mkdir -p "$BASEDIR/queue/tasks" "$BASEDIR/queue/reports"
+
+    cat > "$BASEDIR/queue/noticeboard.yaml" << 'YAML'
+posts: []
+YAML
+
+    cat > "$BASEDIR/queue/room_requests.yaml" << 'YAML'
+requests: []
+YAML
+
+    cat > "$BASEDIR/queue/gijiroku.yaml" << 'YAML'
+meeting: null
+YAML
+
+    for member in oreki kyon nagato; do
+        cat > "$BASEDIR/queue/tasks/${member}.yaml" << YAML
+task: null
+YAML
+        cat > "$BASEDIR/queue/reports/${member}_report.yaml" << YAML
+report: null
+YAML
+    done
+
+    rm -f "$BASEDIR/queue/tasks/koizumi.yaml"
+    rm -f "$BASEDIR/queue/reports/koizumi_report.yaml"
+
+    # 図書館キュー初期化
+    cat > "$BASEDIR/queue/library_queue.yaml" << 'YAML'
+urls: []
+YAML
+
+    # 黒板初期化
+    write_default_blackboard
 
     dim "キューリセット完了"
 }
@@ -287,6 +324,7 @@ launch_claude() {
         # 初期プロンプトを送信（-l でリテラル送信、特殊文字の干渉を防ぐ）
         local boot_text
         boot_text=$(cat "$boot_file")
+        boot_text="${boot_text//\~\/usurahi/$BASEDIR}"
         tmux send-keys -t "$pane" -l "$boot_text"
         tmux send-keys -t "$pane" Enter
         ok "${name}"
@@ -309,7 +347,7 @@ launch_claude() {
     echo ""
     gum style --foreground 240 "  えるに話す  $(gum style --foreground 123 'tmux attach -t noticeboard')"
     gum style --foreground 240 "  部室を覗く  $(gum style --foreground 123 'tmux attach -t clubroom')"
-    gum style --foreground 240 "  部員を呼ぶ  $(gum style --foreground 123 '~/usurahi/meeting.sh -w')"
+    gum style --foreground 240 "  部員を呼ぶ  $(gum style --foreground 123 './meeting.sh -w')"
     echo ""
 }
 
@@ -379,6 +417,7 @@ launch_workers() {
 
         local boot_text
         boot_text=$(cat "$boot_file")
+        boot_text="${boot_text//\~\/usurahi/$BASEDIR}"
         tmux send-keys -t "$pane" -l "$boot_text"
         tmux send-keys -t "$pane" Enter
         ok "${name}"
@@ -439,9 +478,12 @@ main() {
             exit 0
             ;;
         setup)
+            ensure_runtime_state
             setup_sessions
             echo ""
             gum style --foreground 240 --italic "  部室の鍵を開けました（まだ誰も来てません）"
+            gum style --foreground 240 "  部室を覗く  $(gum style --foreground 123 'tmux attach -t clubroom')"
+            gum style --foreground 240 "  会議を始める  $(gum style --foreground 123 './usurahi.sh start')"
             ;;
         clean)
             reset_queues
@@ -452,12 +494,14 @@ main() {
             launch_workers
             ;;
         all)
+            ensure_runtime_state
             setup_sessions
             launch_claude
             sleep 5
             launch_workers
             ;;
         normal)
+            ensure_runtime_state
             setup_sessions
             launch_claude
             ;;
