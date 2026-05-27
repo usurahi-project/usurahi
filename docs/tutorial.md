@@ -65,4 +65,5 @@ tmux attach -t clubroom
 
 使い方だけ見たい時は `tutorial`。
 部室だけ安全に開いて試すなら `start --setup`。
+この段階ではClaude Codeは起動せず、tmuxの部室と黒板だけを確認できる。
 すぐ始める時は `start`。

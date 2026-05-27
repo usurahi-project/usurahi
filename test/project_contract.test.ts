@@ -160,3 +160,16 @@ test("meeting progress updates have a validated tool path", async () => {
   assert.ok(eru.includes("phase: preparing_response"), "eru should use preparing_response before requester handoff");
   assert.ok(eru.includes("phase: ready_to_return"), "eru should keep ready_to_return for requester handoff");
 });
+
+test("first-run setup creates runtime state and avoids fixed home paths", async () => {
+  const meeting = await readRepoFile("meeting.sh");
+  const claude = await readRepoFile("CLAUDE.md");
+  const operations = await readRepoFile(".claude/rules/operations.md");
+
+  assert.ok(meeting.includes("ensure_runtime_state"), "meeting setup should create runtime files on first run");
+  assert.ok(meeting.includes("[[ -f \"$BASEDIR/blackboard.md\" ]] || write_default_blackboard"), "blackboard should exist before the tmux loop starts");
+  assert.ok(meeting.includes("boot_text=\"${boot_text//\\~\\/usurahi/$BASEDIR}\""), "boot prompts should resolve repo-local paths");
+  assert.ok(!meeting.includes("~/usurahi/meeting.sh -w"), "startup hints should not assume ~/usurahi");
+  assert.ok(!claude.includes("~/usurahi/"), "CLAUDE.md should not assume a fixed clone path");
+  assert.ok(!operations.includes("~/usurahi/"), "operation rules should not assume a fixed clone path");
+});
