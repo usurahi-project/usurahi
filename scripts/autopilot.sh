@@ -53,21 +53,11 @@ NODE
 }
 
 ensure_meeting_running() {
-  local noticeboard_exists=0
-  local clubroom_exists=0
-
-  if tmux has-session -t noticeboard 2>/dev/null; then
-    noticeboard_exists=1
-  fi
-  if tmux has-session -t clubroom 2>/dev/null; then
-    clubroom_exists=1
-  fi
-
-  if [[ "$noticeboard_exists" -eq 1 && "$clubroom_exists" -eq 1 ]]; then
+  if node "$BASEDIR/scripts/herdr.mjs" exists; then
     return 0
   fi
 
-  echo "[autopilot] meeting bootstrap: noticeboard=${noticeboard_exists} clubroom=${clubroom_exists}"
+  echo "[autopilot] meeting bootstrap: clubroom missing"
   bash "$BASEDIR/meeting.sh" -a
 }
 

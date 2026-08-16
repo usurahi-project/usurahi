@@ -91,13 +91,18 @@ EOF
 }
 
 open_clubroom() {
-  if ! has_command tmux; then
-    echo "エラー: tmux が必要です。" >&2
+  if ! has_command herdr; then
+    echo "エラー: herdr が必要です。" >&2
     exit 1
   fi
 
-  if tmux has-session -t clubroom 2>/dev/null; then
-    exec tmux attach -t clubroom
+  if node "$BASEDIR/scripts/herdr.mjs" exists; then
+    # herdr の中にいるならワークスペースを切り替える。外からならまず herdr に入る。
+    if [[ "${HERDR_ENV:-}" == "1" ]]; then
+      exec node "$BASEDIR/scripts/herdr.mjs" focus
+    fi
+    say "部室は開いています。herdr の中の clubroom ワークスペースへ移動してください。"
+    exec herdr
   fi
 
   say "部室はまだ開いていません。先に会議を始めます。"
@@ -128,6 +133,9 @@ start_meeting() {
 
 show_status() {
   say "今の状態を見ます。"
+  echo ""
+  node "$BASEDIR/scripts/roster.mjs" entrance
+  echo ""
   local summary holder phase next_action
   summary="$(meeting_summary)"
   IFS=$'\t' read -r holder phase next_action <<< "$summary"

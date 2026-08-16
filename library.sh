@@ -256,7 +256,7 @@ rebuild_queue_item() {
 
 # --- 部会稼働チェック ---
 check_bukatsu_active() {
-    if tmux has-session -t noticeboard 2>/dev/null || tmux has-session -t clubroom 2>/dev/null; then
+    if node "$BASEDIR/scripts/herdr.mjs" exists; then
         return 0  # 稼働中
     fi
     return 1  # 停止中

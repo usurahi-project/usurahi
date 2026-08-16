@@ -46,7 +46,7 @@ test("tutorial explains the first-time structure and next command", async () => 
 
   assert.match(stdout, /薄氷 3分チュートリアル/);
   assert.match(stdout, /\.\/usurahi\.sh/);
-  assert.match(stdout, /tmux attach -t clubroom/);
+  assert.match(stdout, /\.\/usurahi\.sh clubroom/);
   assert.match(stdout, /● 名前/);
   assert.match(stdout, /\.\/usurahi\.sh start --setup/);
   assert.match(stdout, /ユーザーは依頼を持ち込み/);

@@ -86,7 +86,7 @@ if [[ -z "$background" && -t 0 ]]; then
 fi
 
 ensure_meeting_running() {
-  if tmux has-session -t clubroom 2>/dev/null && tmux has-session -t noticeboard 2>/dev/null; then
+  if node "$BASEDIR/scripts/herdr.mjs" exists; then
     return 0
   fi
   "$BASEDIR/meeting.sh"
@@ -137,5 +137,5 @@ else
 fi
 
 if [[ "$attach_room" -eq 1 ]]; then
-  exec tmux attach -t clubroom
+  exec bash "$BASEDIR/usurahi.sh" clubroom
 fi

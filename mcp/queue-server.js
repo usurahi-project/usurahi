@@ -11,6 +11,7 @@ import { z } from "zod";
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
+import { spawn } from "child_process";
 import { loadPendingQueue, savePendingQueue, loadLibraryHistory, recordLibraryHistory } from "../scripts/library-queue-store.mjs";
 
 const BASEDIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -134,103 +135,55 @@ function renderCompletionCheck(check = {}) {
 function renderBlackboard(meeting) {
   if (!meeting) {
     return `# 黒板
-最終更新: ---
+更新: ---
 
 ## 📌 依頼
 なし
 
-## 🧭 背景
----
-
-## 🧩 論点
----
-
-## ⚠️ 懸念
----
-
-## 👥 タスク
+## 🟨 フェーズ
 ---
 
 ## ✅ 決まったこと
 ---
 
-## ⏸ 保留
+## ✔ 完了レポート
 ---
 
-## ✔ 完了
+## 📝 結論
 ---
-
-## 📝 今の部としての結論
----
-
-## 🚪 提出
-未提出
-
-## 💡 メモ
-なし
 `;
   }
 
   const board = meeting.blackboard || {};
   const request = board.request || meeting.why?.request || "なし";
-  const background = board.background ?? meeting.why?.background;
-  const topics = board.topics ?? meeting.how?.topics;
-  const concerns = board.concerns ?? meeting.how?.concerns;
-  const tasks = board.tasks ?? meeting.how?.assignments ?? meeting.how?.task_breakdown;
   const decisions = board.decisions ?? meeting.how?.decisions;
-  const pending = board.pending ?? meeting.how?.pending;
   const done = board.done ?? meeting.how?.done;
   const conclusion = board.conclusion ?? meeting.what?.conclusion;
-  const posted = meeting.what?.submission?.posted;
-  const memo = board.memo;
   const updatedAt = meeting.log?.updated_at || "---";
   const progress = meeting.progress || {};
   const statusLines = [
     `- フェーズ: ${formatPhaseLabel(meeting.phase)}`,
     `- ボール: ${formatProgressLabel(progress.waiting_for || progress.owner)}`,
-    `- 進行役: ${formatProgressLabel(progress.owner)}`,
     `- 次の一手: ${formatBoardValue(progress.next_action, { empty: "---" })}`,
-    `- 完了条件: ${renderCompletionCheck(progress.completion_check)}`,
   ].join("\n");
 
   return `# 黒板
-最終更新: ${updatedAt}
-
-## 🟨 会議ステータス
-${statusLines}
+更新: ${updatedAt}
 
 ## 📌 依頼
 ${formatBoardValue(request, { empty: "なし" })}
 
-## 🧭 背景
-${formatBoardValue(background)}
-
-## 🧩 論点
-${formatBoardValue(topics)}
-
-## ⚠️ 懸念
-${formatBoardValue(concerns)}
-
-## 👥 タスク
-${formatBoardValue(tasks)}
+## 🟨 フェーズ
+${statusLines}
 
 ## ✅ 決まったこと
 ${formatBoardValue(decisions)}
 
-## ⏸ 保留
-${formatBoardValue(pending)}
-
-## ✔ 完了
+## ✔ 完了レポート
 ${formatBoardValue(done)}
 
-## 📝 今の部としての結論
+## 📝 結論
 ${formatBoardValue(conclusion)}
-
-## 🚪 提出
-${posted ? formatBoardValue(posted) : "未提出"}
-
-## 💡 メモ
-${formatBoardValue(memo, { empty: "なし" })}
 `;
 }
 
@@ -242,6 +195,22 @@ function syncBlackboardFromMeeting(meeting) {
 function resetMeetingState() {
   writeYaml(path.join(QUEUE, "gijiroku.yaml"), { meeting: null });
   syncBlackboardFromMeeting(null);
+}
+
+const KNOCK_TARGETS = new Set(["eru", "haruhi", "oreki", "kyon", "nagato"]);
+
+// 部員間ノックを非同期に飛ばす（fire-and-forget）
+function knockMember(target, message) {
+  if (!KNOCK_TARGETS.has(target)) return;
+  try {
+    const proc = spawn(path.join(BASEDIR, "scripts", "notify.sh"), [target, message], {
+      detached: true,
+      stdio: "ignore",
+    });
+    proc.unref();
+  } catch (_err) {
+    // notify は best-effort。失敗してもメインフローを止めない
+  }
 }
 
 function ensureMeetingProgressDefaults(meeting) {
@@ -942,6 +911,7 @@ server.tool(
     }
 
     const meeting = ensureMeetingProgressDefaults(data.meeting);
+    const prevOwner = meeting.progress?.owner;
     if (phase !== undefined) meeting.phase = phase;
     if (owner !== undefined) meeting.progress.owner = owner;
     if (waiting_for !== undefined) meeting.progress.waiting_for = waiting_for;
@@ -963,6 +933,16 @@ server.tool(
     data.meeting = meeting;
     writeYaml(filePath, data);
     syncBlackboardFromMeeting(meeting);
+
+    // 所有者が変わったら自動ノック（agent が notify.sh を呼び忘れる事故を構造的に防ぐ）
+    const newOwner = meeting.progress?.owner;
+    if (newOwner && prevOwner && newOwner !== prevOwner && KNOCK_TARGETS.has(newOwner)) {
+      const bits = ["ボールが回ってきました"];
+      if (meeting.phase) bits.push(`phase: ${meeting.phase}`);
+      if (meeting.progress.next_action) bits.push(`next: ${meeting.progress.next_action}`);
+      knockMember(newOwner, bits.join(" / "));
+    }
+
     return { content: [{ type: "text", text: "meeting.progress を更新完了" }] };
   }
 );

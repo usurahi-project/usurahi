@@ -22,10 +22,7 @@ logs/
 
 # Runtime state
 blackboard.md
-queue/gijiroku.yaml
-queue/noticeboard.yaml
-queue/room_requests.yaml
-queue/library_queue.yaml
+queue/*.yaml
 queue/reports/*.yaml
 queue/tasks/*.yaml
 
@@ -40,5 +37,6 @@ section-03-practice.md
 section-03-practice-revised.md
 sample-project/
 
-# tmux / local artifacts
-*.tmux.log
+
+# 送信ロック（実行時のみ）
+queue/.locks/
