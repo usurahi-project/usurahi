@@ -133,6 +133,9 @@ start_meeting() {
 
 show_status() {
   say "今の状態を見ます。"
+  echo ""
+  node "$BASEDIR/scripts/roster.mjs" entrance
+  echo ""
   local summary holder phase next_action
   summary="$(meeting_summary)"
   IFS=$'\t' read -r holder phase next_action <<< "$summary"

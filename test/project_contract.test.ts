@@ -134,7 +134,11 @@ test("meeting setup wires highlight refresh into the blackboard loop", async () 
   const readme = await readRepoFile("README.md");
   const packageJson = await readRepoFile("package.json");
 
-  assert.ok(herdr.includes("scripts/meeting-highlight.mjs") || herdr.includes('"meeting-highlight.mjs"'), "clubroom layout should refresh the ball holder highlight");
+  const blackboard = await readRepoFile("scripts/blackboard.mjs");
+
+  assert.ok(herdr.includes('"blackboard.mjs"'), "clubroom layout should draw the blackboard from state");
+  assert.ok(!herdr.includes('"blackboard.md"'), "the blackboard pane should not cat the flattened markdown");
+  assert.ok(blackboard.includes("applyHighlight"), "drawing the blackboard should also refresh the ball holder highlight");
   assert.ok(readme.includes("● 名前"), "README should document the highlight marker");
   assert.ok(packageJson.includes("meeting:highlight"), "package.json should expose a manual highlight command");
 });
@@ -142,7 +146,7 @@ test("meeting setup wires highlight refresh into the blackboard loop", async () 
 test("blackboard render includes meeting status and completion checklist", async () => {
   const queueServer = await readRepoFile("mcp/queue-server.js");
 
-  assert.ok(queueServer.includes("## 🟨 会議ステータス"), "blackboard should include a meeting status section");
+  assert.ok(queueServer.includes("## 🟨 フェーズ"), "blackboard should include a meeting status section");
   assert.ok(queueServer.includes("フェーズ"), "blackboard should show phase");
   assert.ok(queueServer.includes("次の一手"), "blackboard should show next action");
   assert.ok(queueServer.includes("完了条件"), "blackboard should show completion checks");

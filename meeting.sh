@@ -170,8 +170,26 @@ YAML
     dim "キューリセット完了"
 }
 
+# --- 昇降口の下駄箱（在室は herdr の実データで描く） ---
+show_entrance() {
+    node "$BASEDIR/scripts/roster.mjs" entrance
+}
+
+# --- 朝礼 / 終礼 ---
+morning_assembly() {
+    node "$BASEDIR/scripts/nisshi.mjs" open
+}
+
+closing_assembly() {
+    node "$BASEDIR/scripts/nisshi.mjs" close
+}
+
 # --- 部室を閉じる ---
 kill_sessions() {
+    # setup_sessions() は次回起動時に議事録と黒板を白紙へ戻す。
+    # 閉じる前に部誌へ写しておかないと、翌日の朝礼で前回の続きが読めない。
+    closing_assembly
+    echo ""
     dim "部室を閉じています..."
     node "$HERDR" kill
 }
@@ -207,7 +225,10 @@ launch_claude() {
     echo ""
     line
     echo ""
-    gum style --foreground 255 "  える＋ハルヒが部室に来ました"
+    # 誰が来たかは文章ではなく下駄箱が示す
+    show_entrance
+    echo ""
+    morning_assembly
     echo ""
     gum style --foreground 240 "  部室を覗く  $(gum style --foreground 123 './usurahi.sh clubroom')"
     gum style --foreground 240 "  部員を呼ぶ  $(gum style --foreground 123 './meeting.sh -w')"
@@ -229,7 +250,7 @@ launch_workers() {
     echo ""
     line
     echo ""
-    gum style --foreground 255 "  全員揃いました"
+    show_entrance
     echo ""
 }
 

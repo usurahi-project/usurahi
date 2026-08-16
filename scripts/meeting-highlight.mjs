@@ -4,7 +4,13 @@ import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
 
-import { MEMBERS, BLACKBOARD_LABEL, call, findClubroom, panesByLabel } from "./herdr.mjs";
+import {
+  MEMBERS,
+  METADATA_SOURCE,
+  call,
+  findClubroom,
+  panesByLabel,
+} from "./herdr.mjs";
 
 const BASEDIR = process.env.USURAHI_BASEDIR || path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const GIJIROKU_FILE = path.join(BASEDIR, "queue", "gijiroku.yaml");
@@ -42,7 +48,7 @@ export function currentBallHolder(meeting) {
 }
 
 /** target はペイン番号ではなくペインの名前（表の呼び名）。 */
-export function paneTitle(target, holder) {
+export function displayAgent(target, holder) {
   if (!holder || MEMBER_LABELS[holder] !== target) return target;
   return `● ${target}`;
 }
@@ -64,25 +70,31 @@ export function meetingSummary(meeting) {
 }
 
 /**
- * ボール保持者のペイン名に ● を付ける。黒板ペインの名前には会議サマリを載せる
- * （tmux の status-right に相当する表示先が herdr には無いため）。
+ * ボール保持者に ● を付け、agent_status を部員の語彙に差し替える。
+ *
+ * どちらも pane.report_metadata で出す。以前は pane.rename でラベルそのものを
+ * 書き換えていたが、ラベルは宛先解決のキーでもあるため、表示のたびに宛先が
+ * 変わってしまい paneKey() で飾りを剥がし直す必要があった。表示は表示として
+ * 別の器に置く。report_metadata は display-only で label に触らない。
+ *
+ * 会議サマリは黒板ペインのラベルへ 120 字に切り詰めて押し込んでいたが、
+ * 黒板そのものが状態から描くようになったので不要になった（blackboard.mjs）。
  */
-export async function applyHighlight(holder, summary) {
+export async function applyHighlight(holder) {
   const clubroom = await findClubroom();
   if (!clubroom) return false;
 
   const panes = await panesByLabel(clubroom.workspace_id);
 
-  for (const label of Object.values(MEMBER_LABELS)) {
-    const paneId = panes.get(label);
+  for (const member of Object.values(MEMBERS)) {
+    const paneId = panes.get(member.label);
     if (!paneId) continue;
-    await call("pane.rename", { pane_id: paneId, label: paneTitle(label, holder) });
-  }
-
-  const blackboardPane = panes.get(BLACKBOARD_LABEL);
-  if (blackboardPane && summary) {
-    const status = `${BLACKBOARD_LABEL} | ${summary.phase} | ボール:${summary.holder} | 次:${summary.nextAction}`;
-    await call("pane.rename", { pane_id: blackboardPane, label: status.slice(0, 120) });
+    await call("pane.report_metadata", {
+      pane_id: paneId,
+      source: METADATA_SOURCE,
+      display_agent: displayAgent(member.label, holder),
+      state_labels: member.states,
+    });
   }
 
   return true;
@@ -94,7 +106,7 @@ async function main() {
   const summary = meetingSummary(meeting);
 
   // 部室が閉じている・herdr が居ない場合は黙って何もしない（黒板の cat は続く）
-  await applyHighlight(holder, summary).catch(() => false);
+  await applyHighlight(holder).catch(() => false);
 
   if (process.argv.includes("--print")) {
     console.log(`${holder || "none"}\t${summary.phase}\t${summary.nextAction}`);

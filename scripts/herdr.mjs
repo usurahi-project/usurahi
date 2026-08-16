@@ -38,30 +38,38 @@ export const MEMBERS = {
     label: "ハルヒ",
     model: "claude-sonnet-4-5-20250929",
     boot: "haruhi_boot.txt",
+    states: { idle: "退屈", working: "ひらめいた", blocked: "つまんない", done: "決めた" },
   },
   oreki: {
     label: "折木",
     model: "claude-sonnet-4-5-20250929",
     boot: "oreki_boot.txt",
+    states: { idle: "省エネ中", working: "しかたなく", blocked: "材料が足りない", done: "終わった" },
   },
   eru: {
     label: "える",
     model: "claude-opus-4-6",
     boot: "eru_boot.txt",
+    states: { idle: "お待ちしています", working: "気になります", blocked: "伺いたいことが", done: "まとまりました" },
   },
   kyon: {
     label: "キョン",
     model: "claude-sonnet-4-5-20250929",
     boot: "kyon_boot.txt",
+    states: { idle: "やれやれ", working: "確認中", blocked: "それはおかしい", done: "揃った" },
   },
   nagato: {
     label: "長門",
     model: "claude-sonnet-4-5-20250929",
     boot: "nagato_boot.txt",
+    states: { idle: "待機", working: "解析中", blocked: "情報が不足している", done: "完了" },
   },
 };
 
 export const BLACKBOARD_LABEL = "黒板";
+
+// pane.report_metadata の報告元。同じ source から出した表示だけが上書き対象になる。
+export const METADATA_SOURCE = "usurahi";
 
 const START_TIMEOUT_MS = 90000;
 // 相手が空くのを待つ上限。空けば送信を確認できるので、そちらを優先する。
@@ -152,8 +160,9 @@ async function requireClubroom() {
 
 /**
  * 表示上の飾りを落として、宛先キーとしての名前に戻す。
- * ラベルはボール保持者の `● ` や黒板の会議サマリで装飾されるが、
- * 宛先はその装飾に左右されてはいけない（番号ハードコードと同じ轍になる）。
+ * 黒板のラベルには会議サマリが載る。`● ` は部員のラベルを直接書き換えていた
+ * 頃の名残で、その版で開いたままの部室に当たった時のために残す。
+ * 宛先はこうした装飾に左右されてはいけない（番号ハードコードと同じ轍になる）。
  */
 export const paneKey = (label) =>
   String(label || "")
@@ -197,10 +206,13 @@ const column = (top, bottom) => ({
 });
 
 function clubroomLayout() {
+  // 黒板は状態から直接描く。以前は「highlight を更新 → blackboard.md を cat →
+  // ざわめきを足す」と3プロセスに分かれていて、markdown の見出し記号と空欄が
+  // そのまま画面に出ていた。描画とメタデータ反映は blackboard.mjs が1本で行う。
   const blackboardLoop = [
     "bash",
     "-lc",
-    `while true; do node ${JSON.stringify(path.join(BASEDIR, "scripts", "meeting-highlight.mjs"))}; clear; cat ${JSON.stringify(path.join(BASEDIR, "blackboard.md"))}; sleep 2; done`,
+    `while true; do clear; node ${JSON.stringify(path.join(BASEDIR, "scripts", "blackboard.mjs"))}; sleep 2; done`,
   ];
 
   // 3列 × 2段。左からハルヒ/折木、える/キョン、長門/黒板。
