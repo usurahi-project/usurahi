@@ -13,7 +13,7 @@
 - `/kaigi`: 依頼を部活として受け、会議を進める
 - `/board`: アイデアや論点を掲示板に残す
 - `/library`: 記事やナレッジを図書館に取り込む
-- `clubroom`: tmux 上で会議の状態を見る
+- `clubroom`: herdr の部室で会議の状態を見る
 - `dashboard`: 学校運営の状態を見る
 
 ## セットアップ
@@ -22,9 +22,16 @@
 
 - `git`
 - `node` / `npm`
-- `tmux`
+- `herdr` 0.7.5 以降（`brew install herdr`）
 - `claude` (Claude Code CLI)
 - `gum` は任意
+
+部員の状態（作業中・返答済み・承認待ち）を薄氷から見えるようにするため、
+herdr の Claude Code 連携を一度だけ入れておく。
+
+```bash
+herdr integration install claude
+```
 
 ```bash
 git clone <repo-url>
@@ -65,7 +72,7 @@ export OBSIDIAN_USURAHI_DIR="$HOME/path/to/your/vault/薄氷"
 会議の状態を見る:
 
 ```bash
-tmux attach -t clubroom
+./usurahi.sh clubroom
 ```
 
 会話のボールを持っている人は、部室で `● 名前` として表示されます。

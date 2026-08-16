@@ -40,5 +40,6 @@ section-03-practice.md
 section-03-practice-revised.md
 sample-project/
 
-# tmux / local artifacts
-*.tmux.log
+
+# 送信ロック（実行時のみ）
+queue/.locks/

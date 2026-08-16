@@ -121,21 +121,20 @@ test("conversation instructions return control instead of leaving members waitin
 });
 
 test("security defaults do not force permission bypass", async () => {
-  const meeting = await readRepoFile("meeting.sh");
-  const notify = await readRepoFile("scripts/notify.sh");
+  const herdr = await readRepoFile("scripts/herdr.mjs");
   const libraryRun = await readRepoFile("scripts/library-run.mjs");
 
-  assert.ok(meeting.includes("USURAHI_DANGEROUS_SKIP_PERMISSIONS"), "meeting.sh should gate permission bypass by env");
-  assert.ok(notify.includes("USURAHI_DANGEROUS_SKIP_PERMISSIONS"), "notify.sh should gate permission bypass by env");
+  assert.ok(herdr.includes("USURAHI_DANGEROUS_SKIP_PERMISSIONS"), "agent launch should gate permission bypass by env");
+  assert.ok(herdr.includes("acceptEdits"), "agent launch should default to acceptEdits, not bypass");
   assert.ok(!libraryRun.includes("--dangerously-skip-permissions"), "library-run should not bypass permissions for summarization");
 });
 
-test("meeting setup wires tmux highlight refresh into the blackboard loop", async () => {
-  const meeting = await readRepoFile("meeting.sh");
+test("meeting setup wires highlight refresh into the blackboard loop", async () => {
+  const herdr = await readRepoFile("scripts/herdr.mjs");
   const readme = await readRepoFile("README.md");
   const packageJson = await readRepoFile("package.json");
 
-  assert.ok(meeting.includes("scripts/meeting-highlight.mjs"), "meeting.sh should refresh the ball holder highlight");
+  assert.ok(herdr.includes("scripts/meeting-highlight.mjs") || herdr.includes('"meeting-highlight.mjs"'), "clubroom layout should refresh the ball holder highlight");
   assert.ok(readme.includes("● 名前"), "README should document the highlight marker");
   assert.ok(packageJson.includes("meeting:highlight"), "package.json should expose a manual highlight command");
 });
@@ -163,12 +162,13 @@ test("meeting progress updates have a validated tool path", async () => {
 
 test("first-run setup creates runtime state and avoids fixed home paths", async () => {
   const meeting = await readRepoFile("meeting.sh");
+  const herdr = await readRepoFile("scripts/herdr.mjs");
   const claude = await readRepoFile("CLAUDE.md");
   const operations = await readRepoFile(".claude/rules/operations.md");
 
   assert.ok(meeting.includes("ensure_runtime_state"), "meeting setup should create runtime files on first run");
-  assert.ok(meeting.includes("[[ -f \"$BASEDIR/blackboard.md\" ]] || write_default_blackboard"), "blackboard should exist before the tmux loop starts");
-  assert.ok(meeting.includes("boot_text=\"${boot_text//\\~\\/usurahi/$BASEDIR}\""), "boot prompts should resolve repo-local paths");
+  assert.ok(meeting.includes("[[ -f \"$BASEDIR/blackboard.md\" ]] || write_default_blackboard"), "blackboard should exist before the blackboard loop starts");
+  assert.ok(herdr.includes('replaceAll("~/usurahi", BASEDIR)'), "boot prompts should resolve repo-local paths");
   assert.ok(!meeting.includes("~/usurahi/meeting.sh -w"), "startup hints should not assume ~/usurahi");
   assert.ok(!claude.includes("~/usurahi/"), "CLAUDE.md should not assume a fixed clone path");
   assert.ok(!operations.includes("~/usurahi/"), "operation rules should not assume a fixed clone path");

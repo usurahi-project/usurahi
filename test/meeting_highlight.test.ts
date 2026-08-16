@@ -10,9 +10,20 @@ type HighlightModule = {
   paneTitle: (target: string, holder: string) => string;
 };
 
+type HerdrModule = {
+  paneKey: (label: string) => string;
+  MEMBERS: Record<string, { label: string }>;
+  BLACKBOARD_LABEL: string;
+};
+
 async function loadHighlightModule(): Promise<HighlightModule> {
   const moduleUrl = pathToFileURL(path.join(process.cwd(), "scripts", "meeting-highlight.mjs")).href;
   return await import(moduleUrl) as HighlightModule;
+}
+
+async function loadHerdrModule(): Promise<HerdrModule> {
+  const moduleUrl = pathToFileURL(path.join(process.cwd(), "scripts", "herdr.mjs")).href;
+  return await import(moduleUrl) as HerdrModule;
 }
 
 test("meeting highlight prefers waiting_for when it is a member", async () => {
@@ -49,8 +60,25 @@ test("meeting highlight ignores unknown holders", async () => {
 test("meeting highlight marks only the holder pane title", async () => {
   const highlight = await loadHighlightModule();
 
-  assert.equal(highlight.paneTitle("clubroom.3", "kyon"), "● キョン");
-  assert.equal(highlight.paneTitle("clubroom.1", "kyon"), "折木");
+  assert.equal(highlight.paneTitle("キョン", "kyon"), "● キョン");
+  assert.equal(highlight.paneTitle("折木", "kyon"), "折木");
+});
+
+test("pane addressing survives the highlight marker and the blackboard summary", async () => {
+  const herdr = await loadHerdrModule();
+
+  // ボール保持者のペインは `● 名前` に改名される。宛先解決がこれに引きずられると
+  // 「ボールを持っている部員にだけ通知できない」という壊れ方をする。
+  for (const member of Object.values(herdr.MEMBERS)) {
+    assert.equal(herdr.paneKey(member.label), member.label);
+    assert.equal(herdr.paneKey(`● ${member.label}`), member.label);
+  }
+
+  // 黒板は会議サマリで装飾される
+  assert.equal(
+    herdr.paneKey(`${herdr.BLACKBOARD_LABEL} | 議論中 | ボール:える | 次:decide_next_step`),
+    herdr.BLACKBOARD_LABEL,
+  );
 });
 
 test("meeting summary exposes phase, holder, and next action", async () => {

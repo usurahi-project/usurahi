@@ -72,7 +72,8 @@ done
 notify_eru() {
   local request_id="$1"
 
-  if ! tmux has-session -t noticeboard 2>/dev/null; then
+  # 部室が開いていない間はノックしても届かない
+  if ! node "$BASEDIR/scripts/herdr.mjs" exists; then
     return 0
   fi
 

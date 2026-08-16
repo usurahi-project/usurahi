@@ -87,7 +87,7 @@
 
 起きること:
 
-- tmux セッションだけ作る
+- 部室（herdr ワークスペース）だけ作る
 - Claude はまだ起動しない
 
 得られる体験:
@@ -113,10 +113,10 @@
 ### えるに話しかける
 
 ```bash
-tmux attach -t noticeboard
+./usurahi.sh clubroom
 ```
 
-ここは、えると会話しながら背景や判断を返す窓口である。
+部室の える のペインが、えると会話しながら背景や判断を返す窓口である。
 正式依頼の主線は `request.sh` から `room_requests.yaml` に入る。
 
 例:
@@ -141,13 +141,13 @@ sample-project の TODO CLI を、世界観はそのままで使いやすくし�
 ### 部室を覗く
 
 ```bash
-tmux attach -t clubroom
+./usurahi.sh clubroom
 ```
 
 起きること:
 
 - ハルヒ、折木、キョン、長門のやり取りを見られる
-- えるは `noticeboard` 本体に加えて、`clubroom` に表示 pane を持つ
+- える も同じ部室に自分のペインを持つ
 - 黒板 pane で `blackboard.md` の現在値を常時見られる
 - 実際には `blackboard.md` の現在値と `gijiroku.yaml` の内部状態をもとに部活が進む
 
@@ -203,7 +203,7 @@ tmux attach -t clubroom
 
 起きること:
 
-- 対象のtmuxペインに直接メッセージが送られる
+- 対象の部員のペインに直接メッセージが送られる（改行や記号もそのまま届く）
 - 起動していない部員なら自動起動を試みる
 
 得られる体験:
@@ -257,9 +257,9 @@ Slack Bridge が動いていれば、次の体験もある。
 一番自然な使い方はこれ。
 
 1. `./meeting.sh -c`
-2. `tmux attach -t noticeboard`
-3. えるに依頼を自然文で話す
-4. 必要なら `tmux attach -t clubroom` で部室を見る
+2. `./usurahi.sh clubroom`
+3. える のペインで依頼を自然文で話す
+4. そのまま部室で全員のやり取りを見る
 5. 途中で口を挟きたければ `./scripts/notify.sh ...`
 6. 結論を受け取る
 7. 必要なら `./meeting.sh -k`
@@ -273,6 +273,5 @@ Slack Bridge が動いていれば、次の体験もある。
 
 ## 9. 今の実装でまだ弱い点
 
-- tmux の画面構成はまだ仮置きで、黒板 pane の比重や並び順は改善余地がある
-- 受付の `noticeboard` と会議の `clubroom` の役割差は、もう少し見た目で伝えたい
+- 画面構成はまだ仮置きで、黒板 pane の比重や並び順は改善余地がある
 - 外向けには `request.sh` と自然文受付の併用ルールを、もう一段わかりやすくできる

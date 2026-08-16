@@ -2,22 +2,16 @@
 
 import fs from "fs";
 import path from "path";
-import { execFileSync } from "child_process";
 import yaml from "js-yaml";
+
+import { MEMBERS, BLACKBOARD_LABEL, call, findClubroom, panesByLabel } from "./herdr.mjs";
 
 const BASEDIR = process.env.USURAHI_BASEDIR || path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const GIJIROKU_FILE = path.join(BASEDIR, "queue", "gijiroku.yaml");
-const CLUBROOM_SESSION = process.env.USURAHI_CLUBROOM_SESSION || "clubroom";
-const NOTICEBOARD_SESSION = process.env.USURAHI_NOTICEBOARD_SESSION || "noticeboard";
 
-const MEMBERS = new Set(["eru", "haruhi", "oreki", "kyon", "nagato"]);
-const MEMBER_LABELS = {
-  eru: "える",
-  haruhi: "ハルヒ",
-  oreki: "折木",
-  kyon: "キョン",
-  nagato: "長門",
-};
+const MEMBER_LABELS = Object.fromEntries(
+  Object.entries(MEMBERS).map(([key, member]) => [key, member.label]),
+);
 
 const PHASE_LABELS = {
   clarifying: "確認中",
@@ -29,24 +23,6 @@ const PHASE_LABELS = {
   done: "完了",
 };
 
-const PANE_TARGETS = {
-  eru: [`${NOTICEBOARD_SESSION}.0`, `${CLUBROOM_SESSION}.4`],
-  haruhi: [`${CLUBROOM_SESSION}.0`],
-  oreki: [`${CLUBROOM_SESSION}.1`],
-  kyon: [`${CLUBROOM_SESSION}.3`],
-  nagato: [`${CLUBROOM_SESSION}.5`],
-};
-
-const BASE_TITLES = {
-  [`${NOTICEBOARD_SESSION}.0`]: "える",
-  [`${CLUBROOM_SESSION}.0`]: "ハルヒ",
-  [`${CLUBROOM_SESSION}.1`]: "折木",
-  [`${CLUBROOM_SESSION}.2`]: "黒板",
-  [`${CLUBROOM_SESSION}.3`]: "キョン",
-  [`${CLUBROOM_SESSION}.4`]: "える",
-  [`${CLUBROOM_SESSION}.5`]: "長門",
-};
-
 export function readMeetingState(filePath = GIJIROKU_FILE) {
   if (!fs.existsSync(filePath)) return null;
   const data = yaml.load(fs.readFileSync(filePath, "utf8")) || {};
@@ -55,7 +31,7 @@ export function readMeetingState(filePath = GIJIROKU_FILE) {
 
 export function normalizeMember(value) {
   const normalized = String(value || "").trim();
-  return MEMBERS.has(normalized) ? normalized : "";
+  return Object.hasOwn(MEMBERS, normalized) ? normalized : "";
 }
 
 export function currentBallHolder(meeting) {
@@ -65,19 +41,15 @@ export function currentBallHolder(meeting) {
   return normalizeMember(meeting.progress?.owner);
 }
 
+/** target はペイン番号ではなくペインの名前（表の呼び名）。 */
 export function paneTitle(target, holder) {
-  const baseTitle = BASE_TITLES[target] || target;
-  if (!holder || !(PANE_TARGETS[holder] || []).includes(target)) return baseTitle;
-  return `● ${baseTitle}`;
+  if (!holder || MEMBER_LABELS[holder] !== target) return target;
+  return `● ${target}`;
 }
 
 export function meetingSummary(meeting) {
   if (!meeting || typeof meeting !== "object") {
-    return {
-      phase: "なし",
-      holder: "なし",
-      nextAction: "なし",
-    };
+    return { phase: "なし", holder: "なし", nextAction: "なし" };
   }
 
   const holder = currentBallHolder(meeting);
@@ -91,51 +63,44 @@ export function meetingSummary(meeting) {
   };
 }
 
-function tmux(args) {
-  try {
-    execFileSync("tmux", args, { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-}
+/**
+ * ボール保持者のペイン名に ● を付ける。黒板ペインの名前には会議サマリを載せる
+ * （tmux の status-right に相当する表示先が herdr には無いため）。
+ */
+export async function applyHighlight(holder, summary) {
+  const clubroom = await findClubroom();
+  if (!clubroom) return false;
 
-function tmuxSessionExists(sessionName) {
-  return tmux(["has-session", "-t", sessionName]);
-}
+  const panes = await panesByLabel(clubroom.workspace_id);
 
-export function applyHighlight(holder) {
-  if (!tmuxSessionExists(CLUBROOM_SESSION) && !tmuxSessionExists(NOTICEBOARD_SESSION)) return;
-
-  const highlightedTargets = new Set(holder ? PANE_TARGETS[holder] || [] : []);
-  for (const [target, baseTitle] of Object.entries(BASE_TITLES)) {
-    const isHighlighted = highlightedTargets.has(target);
-    tmux(["select-pane", "-t", target, "-T", isHighlighted ? `● ${baseTitle}` : baseTitle]);
-    tmux(["select-pane", "-t", target, "-P", isHighlighted ? "fg=yellow,bold" : "fg=colour240"]);
+  for (const label of Object.values(MEMBER_LABELS)) {
+    const paneId = panes.get(label);
+    if (!paneId) continue;
+    await call("pane.rename", { pane_id: paneId, label: paneTitle(label, holder) });
   }
 
-  const label = holder ? MEMBER_LABELS[holder] || holder : "なし";
-  tmux(["set-option", "-t", CLUBROOM_SESSION, "status-right", ` ボール: ${label} `]);
+  const blackboardPane = panes.get(BLACKBOARD_LABEL);
+  if (blackboardPane && summary) {
+    const status = `${BLACKBOARD_LABEL} | ${summary.phase} | ボール:${summary.holder} | 次:${summary.nextAction}`;
+    await call("pane.rename", { pane_id: blackboardPane, label: status.slice(0, 120) });
+  }
+
+  return true;
 }
 
-export function applyStatusSummary(summary) {
-  if (!tmuxSessionExists(CLUBROOM_SESSION)) return;
-  const status = ` phase:${summary.phase} | ball:${summary.holder} | next:${summary.nextAction} `;
-  tmux(["set-option", "-t", CLUBROOM_SESSION, "status-right", status.slice(0, 180)]);
-}
-
-function main() {
+async function main() {
   const meeting = readMeetingState();
   const holder = currentBallHolder(meeting);
-  applyHighlight(holder);
-  applyStatusSummary(meetingSummary(meeting));
+  const summary = meetingSummary(meeting);
+
+  // 部室が閉じている・herdr が居ない場合は黙って何もしない（黒板の cat は続く）
+  await applyHighlight(holder, summary).catch(() => false);
 
   if (process.argv.includes("--print")) {
-    const summary = meetingSummary(meeting);
     console.log(`${holder || "none"}\t${summary.phase}\t${summary.nextAction}`);
   }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+  await main();
 }

@@ -21,7 +21,7 @@
 ## 3. 主な場所
 
 - 受付: `./usurahi.sh`
-- 部室: `tmux attach -t clubroom`
+- 部室: `./usurahi.sh clubroom`
 - 掲示板: あとで扱う論点やメモを置く
 - 図書館: URLやナレッジを残す
 - ダッシュボード: 学校運営の状態を見る
@@ -41,7 +41,7 @@
 ## 5. 会議中に見るもの
 
 ```bash
-tmux attach -t clubroom
+./usurahi.sh clubroom
 ```
 
 部室では、会話のボールを持っている人が `● 名前` で表示される。
@@ -65,5 +65,5 @@ tmux attach -t clubroom
 
 使い方だけ見たい時は `tutorial`。
 部室だけ安全に開いて試すなら `start --setup`。
-この段階ではClaude Codeは起動せず、tmuxの部室と黒板だけを確認できる。
+この段階ではClaude Codeは起動せず、部室と黒板だけを確認できる。
 すぐ始める時は `start`。
