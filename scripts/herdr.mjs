@@ -76,6 +76,9 @@ const START_TIMEOUT_MS = 90000;
 // ただし待ち切らない場合は Claude Code の入力キューに積む。無制限に待つと、
 // 部員どうしが同時にノックし合ったとき双方が相手待ちで固まる。
 const RECEPTIVE_WAIT_MS = Number(process.env.USURAHI_RECEPTIVE_WAIT_MS || 30000);
+// 確定の取りこぼしに備えた Enter の撃ち直し回数と、1回あたりの待ち。
+const SUBMIT_RETRIES = 3;
+const SUBMIT_WAIT_MS = 6000;
 
 //--- socket -----------------------------------------------------------------
 
@@ -212,7 +215,11 @@ function clubroomLayout() {
   const blackboardLoop = [
     "bash",
     "-lc",
-    `while true; do clear; node ${JSON.stringify(path.join(BASEDIR, "scripts", "blackboard.mjs"))}; sleep 2; done`,
+    // trap '' INT: 黒板は読むための面で、Ctrl-C は誤爆しかない。bash -lc は
+    // コマンドが終わるとペインごと閉じるので、止めると黒板が二度と戻らない。
+    // 先に描いてから消す: clear が先だと、node の起動と pane.list の往復を待つ
+    // 約1秒のあいだ真っ白になり、2秒周期の半分が空白になる。
+    `trap '' INT; while true; do out=$(node ${JSON.stringify(path.join(BASEDIR, "scripts", "blackboard.mjs"))}); clear; printf '%s\\n' "$out"; sleep 2; done`,
   ];
 
   // 3列 × 2段。左からハルヒ/折木、える/キョン、長門/黒板。
@@ -411,24 +418,47 @@ async function waitReceptive(paneId, timeoutMs = RECEPTIVE_WAIT_MS) {
 }
 
 /**
+ * 送信が受け付けられたか。working に入るか、state_change_seq が進めば受理。
+ * seq も見るのは、短い依頼だと working を観測する前にターンが終わることがあるため。
+ */
+async function waitSubmitted(paneId, seq0, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const agent = await getAgent(paneId);
+    if (agent && (agent.agent_status === "working" || (agent.state_change_seq ?? -1) > seq0)) {
+      return true;
+    }
+    await sleep(300);
+  }
+  return false;
+}
+
+/**
  * 相手が空くのを少し待ってから送信する。
- * 空いた状態で送れた場合は working への遷移で着弾を確認できる（"accepted"）。
+ * 空いた状態で送れた場合は受理まで見届ける（"accepted"）。
  * 空かないまま送った場合は Claude Code の入力キューに積まれる（"queued"）。
+ *
+ * agent.prompt は本文を入力欄へ流し込んで確定させるが、相手の描画と重なると
+ * 確定だけ取りこぼされ、本文が未送信のまま入力欄に残る（実測: ブート直後の
+ * idle なペインで発生）。受理が確認できなければ Enter を撃ち直す。旧 tmux 版が
+ * Enter を5回再送していたのと同じ対策で、herdr でも必要だった。
  *
  * 重要: "queued" が安全なのは、同一宛先への送信が withSendLock で直列化されている
  * 前提のとき。相手が working 中でも 3 本同時投入で 3/3 着弾したのはロック下での実測で、
  * ロックなしの同時送信は 6 本中 5 本が消える。この関数を単体で切り出して使わないこと。
  */
-async function submitPrompt(paneId, text, acceptTimeoutMs = 20000) {
+async function submitPrompt(paneId, text) {
   const wasReceptive = (await waitReceptive(paneId)) !== null;
+  const seq0 = (await getAgent(paneId))?.state_change_seq ?? -1;
 
   await call("agent.prompt", { target: paneId, text });
   if (!wasReceptive) return "queued";
 
-  const deadline = Date.now() + acceptTimeoutMs;
-  while (Date.now() < deadline) {
-    if ((await getAgent(paneId))?.agent_status === "working") return "accepted";
-    await sleep(300);
+  for (let attempt = 0; attempt <= SUBMIT_RETRIES; attempt++) {
+    if (await waitSubmitted(paneId, seq0, SUBMIT_WAIT_MS)) return "accepted";
+    if (attempt < SUBMIT_RETRIES) {
+      await call("agent.send_keys", { target: paneId, keys: ["enter"] });
+    }
   }
   return "unconfirmed";
 }
@@ -437,15 +467,19 @@ async function submitPrompt(paneId, text, acceptTimeoutMs = 20000) {
  * ペインのシェルが立ち上がるのを待って agent.start する。
  * layout.apply でペインを作った直後は "not an available shell" で弾かれることがある。
  * 窓は数十ミリ秒と狭く、meeting.sh -a のように setup 直後に launch すると踏む。
+ *
+ * name は herdr 側で一意でなければならない。全員 "claude" にすると 2 人目が
+ * "agent name claude is already used" で落ちるので、部員のキーを使う。
+ * kind はエージェントの種類なので "claude" のまま。
  */
-async function startAgent(paneId, args, timeoutMs = 15000) {
+async function startAgent(paneId, name, args, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     try {
       return await call("agent.start", {
         pane_id: paneId,
         kind: "claude",
-        name: "claude",
+        name,
         args,
         timeout_ms: START_TIMEOUT_MS,
       });
@@ -470,7 +504,7 @@ export async function ensureRunning(member) {
       : ["--permission-mode", "acceptEdits"]),
   );
 
-  await startAgent(member.paneId, args);
+  await startAgent(member.paneId, member.key, args);
   await waitInteractive(member.paneId);
   if ((await submitPrompt(member.paneId, bootText(member))) === "unconfirmed") {
     console.error(`警告: ${member.label} のブート送信を確認できませんでした`);
