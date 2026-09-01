@@ -30,7 +30,7 @@
   "type": "commonjs",
   "dependencies": {
     "@slack/bolt": "^4.6.0",
-    "dotenv": "^17.2.4",
+    "dotenv": "^17.4.2",
     "js-yaml": "^4.1.1"
   },
   "devDependencies": {
